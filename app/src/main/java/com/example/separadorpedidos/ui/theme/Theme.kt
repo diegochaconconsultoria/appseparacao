@@ -8,74 +8,89 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
 private val LightColorScheme = lightColorScheme(
-    primary = Color(0xFF1976D2),
+    // CORES VERMELHAS PRINCIPAIS
+    primary = Color(0xFF9F2340),
     onPrimary = Color.White,
-    primaryContainer = Color(0xFFBBDEFB),
-    onPrimaryContainer = Color(0xFF0D47A1),
-    secondary = Color(0xFF26A69A),
+    primaryContainer = Color(0xFFFFDAD6),
+    onPrimaryContainer = Color(0xFF410002),
+
+    // CORES SECUNDÁRIAS (laranja/rosa complementar)
+    secondary = Color(0xFFFF6B35),
     onSecondary = Color.White,
-    secondaryContainer = Color(0xFFB2DFDB),
-    onSecondaryContainer = Color(0xFF00695C),
-    tertiary = Color(0xFFFF6F00),
+    secondaryContainer = Color(0xFFFFDAD1),
+    onSecondaryContainer = Color(0xFF441000),
+
+    // CORES TERCIÁRIAS (rosa vibrante)
+    tertiary = Color(0xFFD63384),
     onTertiary = Color.White,
-    tertiaryContainer = Color(0xFFFFCC80),
-    onTertiaryContainer = Color(0xFFE65100),
-    error = Color(0xFFE57373),
-    errorContainer = Color(0xFFFFEBEE),
+    tertiaryContainer = Color(0xFFFFD9E5),
+    onTertiaryContainer = Color(0xFF390014),
+
+    // CORES DE ERRO
+    error = Color(0xFFBA1A1A),
+    errorContainer = Color(0xFFFFDAD6),
     onError = Color.White,
-    onErrorContainer = Color(0xFFD32F2F),
-    background = Color(0xFFFAFAFA),
-    onBackground = Color(0xFF212121),
-    surface = Color(0xFFFFFFFF),
-    onSurface = Color(0xFF212121),
-    surfaceVariant = Color(0xFFF5F5F5),
-    onSurfaceVariant = Color(0xFF424242),
-    outline = Color(0xFFBDBDBD),
-    inverseSurface = Color(0xFF303030),
-    inverseOnSurface = Color(0xFFF5F5F5),
-    inversePrimary = Color(0xFF90CAF9),
-    surfaceTint = Color(0xFF1976D2)
+    onErrorContainer = Color(0xFF410002),
+
+    // CORES DE FUNDO
+    background = Color(0xFFFFFBFF),
+    onBackground = Color(0xFF201A1A),
+    surface = Color(0xFFFFFBFF),
+    onSurface = Color(0xFF201A1A),
+    surfaceVariant = Color(0xFFF5DDDA),
+    onSurfaceVariant = Color(0xFF534341),
+    outline = Color(0xFF857370),
+    inverseSurface = Color(0xFF362F2E),
+    inverseOnSurface = Color(0xFFFBEEED),
+    inversePrimary = Color(0xFFFFB4AB),
+    surfaceTint = Color(0xFF9F2340)
 )
 
 private val DarkColorScheme = darkColorScheme(
-    primary = Color(0xFF90CAF9),
-    onPrimary = Color(0xFF0D47A1),
-    primaryContainer = Color(0xFF1565C0),
-    onPrimaryContainer = Color(0xFFE3F2FD),
-    secondary = Color(0xFF4DB6AC),
-    onSecondary = Color(0xFF004D40),
-    secondaryContainer = Color(0xFF00695C),
-    onSecondaryContainer = Color(0xFFE0F2F1),
-    tertiary = Color(0xFFFFB74D),
-    onTertiary = Color(0xFFE65100),
-    tertiaryContainer = Color(0xFFFF8F00),
-    onTertiaryContainer = Color(0xFFFFF3E0),
-    error = Color(0xFFFF8A80),
-    errorContainer = Color(0xFFD32F2F),
-    onError = Color(0xFFFFEBEE),
-    onErrorContainer = Color(0xFFFFCDD2),
-    background = Color(0xFF121212),
-    onBackground = Color(0xFFE0E0E0),
-    surface = Color(0xFF1E1E1E),
-    onSurface = Color(0xFFE0E0E0),
-    surfaceVariant = Color(0xFF424242),
-    onSurfaceVariant = Color(0xFFBDBDBD),
-    outline = Color(0xFF616161),
-    inverseSurface = Color(0xFFE0E0E0),
-    inverseOnSurface = Color(0xFF303030),
-    inversePrimary = Color(0xFF1976D2),
-    surfaceTint = Color(0xFF90CAF9)
+    // CORES VERMELHAS PARA TEMA ESCURO
+    primary = Color(0xFFFFB4AB),
+    onPrimary = Color(0xFF690005),
+    primaryContainer = Color(0xFF93000A),
+    onPrimaryContainer = Color(0xFFFFDAD6),
+
+    // CORES SECUNDÁRIAS
+    secondary = Color(0xFFFFB59D),
+    onSecondary = Color(0xFF5F1600),
+    secondaryContainer = Color(0xFF7F2B00),
+    onSecondaryContainer = Color(0xFFFFDAD1),
+
+    // CORES TERCIÁRIAS
+    tertiary = Color(0xFFFFB0CA),
+    onTertiary = Color(0xFF541E2B),
+    tertiaryContainer = Color(0xFF6E3441),
+    onTertiaryContainer = Color(0xFFFFD9E5),
+
+    // CORES DE ERRO
+    error = Color(0xFFFFB4AB),
+    errorContainer = Color(0xFF93000A),
+    onError = Color(0xFF690005),
+    onErrorContainer = Color(0xFFFFDAD6),
+
+    // CORES DE FUNDO ESCURO
+    background = Color(0xFF201A1A),
+    onBackground = Color(0xFFEDE0DE),
+    surface = Color(0xFF201A1A),
+    onSurface = Color(0xFFEDE0DE),
+    surfaceVariant = Color(0xFF534341),
+    onSurfaceVariant = Color(0xFFD8C2BE),
+    outline = Color(0xFFA08C89),
+    inverseSurface = Color(0xFFEDE0DE),
+    inverseOnSurface = Color(0xFF362F2E),
+    inversePrimary = Color(0xFF9F2340),
+    surfaceTint = Color(0xFFFFB4AB)
 )
 
 @Composable
 fun SeparadorPedidosTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    darkTheme: Boolean = false, // FORÇAR TEMA CLARO - mudança aqui
     content: @Composable () -> Unit
 ) {
-    val colorScheme = when {
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
-    }
+    val colorScheme = LightColorScheme // SEMPRE usar tema claro
 
     MaterialTheme(
         colorScheme = colorScheme,

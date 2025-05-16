@@ -136,17 +136,95 @@ class EntregaViewModel : ViewModel() {
         }
     }
 
-    fun confirmarEntrega(onSuccess: () -> Unit) {
-        // TODO: Implementar API de entrega final
+    fun confirmarEntrega(onSuccess: () -> Unit, onError: (String) -> Unit) {
         viewModelScope.launch {
-            ocultarDialogValidacao()
-            onSuccess()
+            _dialogState.value = _dialogState.value.copy(
+                isLoading = true
+            )
+
+            try {
+                val nomeUsuario = _dialogState.value.nomeUsuario ?: run {
+                    _dialogState.value = _dialogState.value.copy(
+                        isLoading = false,
+                        erro = "Nome do usuário não encontrado"
+                    )
+                    onError("Nome do usuário não encontrado")
+                    return@launch
+                }
+
+                // Buscar os produtos selecionados
+                val produtosSelecionados = _uiState.value.produtos.filter { produto ->
+                    _uiState.value.produtosSelecionados.contains(produto.produto)
+                }
+
+                // Criar lista de produtos para entrega
+                val produtosEntrega = produtosSelecionados.map { produto ->
+                    // Usar o setor diretamente como vem da API (já deve vir no formato correto)
+                    val codigoSetor = produto.setor
+
+                    ProdutoEntregaRequest(
+                        codigo = produto.produto,
+                        descricao = produto.descricao,
+                        origem = produto.origem,
+                        setor = codigoSetor,
+                        entrega = produto.saldoAEntregar
+                    )
+                }
+
+                // Criar request
+                val request = RealizarEntregaRequest(
+                    pedido = _uiState.value.pedido,
+                    nome = nomeUsuario,
+                    produtos = produtosEntrega
+                )
+
+                // Chamar API
+                val response = apiService.realizarEntrega(request)
+
+                if (response.isSuccessful) {
+                    val entregaResponse = response.body()
+
+                    if (entregaResponse?.success == true) {
+                        _uiState.value = _uiState.value.copy(
+                            produtosSelecionados = emptySet(),
+                            showEntregaSucesso = true,
+                            quantidadeEntregaRealizada = produtosSelecionados.size
+                        )
+                        _dialogState.value = DialogState()
+                        onSuccess()
+                        // Recarregar produtos para atualizar o status
+                        buscarProdutosEntrega(_uiState.value.pedido, _uiState.value.setoresSelecionados)
+                    } else {
+                        _dialogState.value = _dialogState.value.copy(
+                            isLoading = false,
+                            erro = "Erro ao realizar entrega"
+                        )
+                        onError("Erro ao realizar entrega")
+                    }
+                } else {
+                    _dialogState.value = _dialogState.value.copy(
+                        isLoading = false,
+                        erro = "Erro na comunicação com o servidor"
+                    )
+                    onError("Erro na comunicação com o servidor")
+                }
+            } catch (e: Exception) {
+                _dialogState.value = _dialogState.value.copy(
+                    isLoading = false,
+                    erro = "Erro de conexão: ${e.message}"
+                )
+                onError("Erro de conexão: ${e.message}")
+            }
         }
     }
 
     fun limparState() {
         _uiState.value = EntregaUiState()
         _dialogState.value = DialogState()
+    }
+
+    fun limparEntregaSucesso() {
+        _uiState.value = _uiState.value.copy(showEntregaSucesso = false)
     }
 }
 
@@ -156,7 +234,9 @@ data class EntregaUiState(
     val produtos: List<ProdutoEntrega> = emptyList(),
     val produtosSelecionados: Set<String> = emptySet(),
     val pedido: String = "",
-    val setoresSelecionados: Set<String> = emptySet()
+    val setoresSelecionados: Set<String> = emptySet(),
+    val showEntregaSucesso: Boolean = false,
+    val quantidadeEntregaRealizada: Int = 0
 )
 
 data class DialogState(

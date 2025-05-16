@@ -136,7 +136,19 @@ object CodigoSetores {
     )
 
     fun obterCodigo(nomeSetor: String): String {
-        return mapeamento[nomeSetor] ?: "9999"
+        return mapeamento[nomeSetor] ?: run {
+            // Se não encontrar pelo nome, verificar se já é um código
+            if (nomeSetor.matches(Regex("\\d{4}"))) {
+                nomeSetor
+            } else {
+                "9999" // Padrão para setores não encontrados
+            }
+        }
+    }
+
+    // NOVA FUNÇÃO: Obter nome do setor pelo código
+    fun obterNomePorCodigo(codigo: String): String {
+        return mapeamento.entries.find { it.value == codigo }?.key ?: codigo
     }
 
     fun formatarSetores(setoresSelecionados: Set<String>): String {

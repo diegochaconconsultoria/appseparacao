@@ -49,3 +49,33 @@ data class SetorDisponivel(
     val chaveApi: String,
     val habilitado: Boolean
 )
+
+
+// Request para realizar entrega
+data class RealizarEntregaRequest(
+    @SerializedName("Pedido")
+    val pedido: String,
+    @SerializedName("Nome")
+    val nome: String,
+    @SerializedName("Produtos")
+    val produtos: List<ProdutoEntregaRequest>
+)
+
+data class ProdutoEntregaRequest(
+    @SerializedName("Codigo")
+    val codigo: String,
+    @SerializedName("Descricao")
+    val descricao: String,
+    @SerializedName("Origem")
+    val origem: String,
+    @SerializedName("Setor")
+    val setor: String,
+    @SerializedName("Entrega")
+    val entrega: Double
+)
+
+// Response da API de entrega
+data class RealizarEntregaResponse(
+    @SerializedName("sucess")
+    val success: Boolean
+)

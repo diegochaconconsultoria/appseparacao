@@ -89,14 +89,15 @@ fun ProdutoSeparacaoCompactCard(
                     }
                 }
 
-                // Descrição
+                // Descrição - FONTE AUMENTADA
                 Text(
                     text = produto.descricao,
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.bodyMedium, // Mudado de bodySmall para bodyMedium
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
+                    fontWeight = FontWeight.Medium, // Adicionado peso médio para destacar
                     color = MaterialTheme.colorScheme.onSurface.copy(
-                        alpha = if (podeSelecionar) 0.8f else 0.5f
+                        alpha = if (podeSelecionar) 0.9f else 0.5f // Aumentado a opacidade também
                     )
                 )
 
@@ -107,14 +108,14 @@ fun ProdutoSeparacaoCompactCard(
                 ) {
                     Text(
                         text = "Orig: ${produto.getQtdOriginalFormatted()}",
-                        style = MaterialTheme.typography.labelSmall,
+                        style = MaterialTheme.typography.labelMedium, // Mudado de labelSmall para labelMedium
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(
                             alpha = if (podeSelecionar) 1f else 0.6f
                         )
                     )
                     Text(
                         text = "Saldo: ${produto.getSaldoFormatted()}",
-                        style = MaterialTheme.typography.labelSmall,
+                        style = MaterialTheme.typography.labelMedium, // Mudado de labelSmall para labelMedium
                         fontWeight = if (jaSeparado) FontWeight.Medium else FontWeight.Normal,
                         color = if (jaSeparado)
                             Color(0xFF4CAF50).copy(alpha = if (podeSelecionar) 1f else 0.6f)
@@ -125,8 +126,8 @@ fun ProdutoSeparacaoCompactCard(
                     )
                     Text(
                         text = "A Sep: ${produto.getQtdaSepararFormatted()}",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Medium,
+                        style = MaterialTheme.typography.titleMedium, // Mudado de labelLarge para titleMedium (ainda maior!)
+                        fontWeight = FontWeight.Bold,
                         color = if (podeSelecionar)
                             MaterialTheme.colorScheme.primary
                         else
@@ -155,7 +156,7 @@ fun ProdutoSeparacaoCompactCard(
                         )
                         Text(
                             text = if (produto.local.isBlank()) "S/ Local" else produto.getEnderecoCompleto(),
-                            style = MaterialTheme.typography.labelSmall,
+                            style = MaterialTheme.typography.labelMedium, // Mudado de labelSmall para labelMedium
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(
@@ -167,7 +168,7 @@ fun ProdutoSeparacaoCompactCard(
                     // Setor
                     Text(
                         text = "Setor: ${produto.setor}",
-                        style = MaterialTheme.typography.labelSmall,
+                        style = MaterialTheme.typography.labelMedium, // Mudado de labelSmall para labelMedium
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(
                             alpha = if (podeSelecionar) 1f else 0.6f
                         )

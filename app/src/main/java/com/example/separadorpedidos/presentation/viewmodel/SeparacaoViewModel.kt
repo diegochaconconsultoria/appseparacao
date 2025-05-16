@@ -3,10 +3,7 @@ package com.example.separadorpedidos.presentation.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.separadorpedidos.data.api.NetworkModule
-import com.example.separadorpedidos.data.model.CodigoSetores
-import com.example.separadorpedidos.data.model.FiltroLocal
-import com.example.separadorpedidos.data.model.ProdutoSeparacao
-import com.example.separadorpedidos.data.model.SeparacaoRequest
+import com.example.separadorpedidos.data.model.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -65,6 +62,77 @@ class SeparacaoViewModel : ViewModel() {
                     isLoading = false,
                     error = "Erro de conexão: ${e.message}"
                 )
+            }
+        }
+    }
+
+    fun realizarBaixaSeparacao(onSuccess: () -> Unit, onError: (String) -> Unit) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(
+                isBaixaLoading = true,
+                baixaError = null
+            )
+
+            try {
+                // Buscar os produtos selecionados
+                val produtosSelecionados = _uiState.value.produtosTodos.filter { produto ->
+                    _uiState.value.produtosSelecionados.contains(produto.produto)
+                }
+
+                // Salvar quantidade para mostrar no dialog
+                val quantidadeProdutos = produtosSelecionados.size
+
+                // Criar lista de produtos para baixa
+                val produtosBaixa = produtosSelecionados.map { produto ->
+                    ProdutoBaixa(
+                        codigo = produto.produto,
+                        setor = produto.setor,
+                        um = produto.um
+                    )
+                }
+
+                // Criar request
+                val request = BaixaSeparacaoRequest(
+                    pedido = _uiState.value.pedido,
+                    produtos = produtosBaixa
+                )
+
+                // Chamar API
+                val response = apiService.realizarBaixaSeparacao(request)
+
+                if (response.isSuccessful) {
+                    val baixaResponse = response.body()
+
+                    if (baixaResponse?.success == true) {
+                        _uiState.value = _uiState.value.copy(
+                            isBaixaLoading = false,
+                            produtosSelecionados = emptySet(),
+                            showBaixaSucesso = true,
+                            quantidadeBaixaRealizada = quantidadeProdutos
+                        )
+                        onSuccess()
+                        // Recarregar produtos para atualizar o status
+                        buscarProdutosSeparacao(_uiState.value.pedido, _uiState.value.setoresSelecionados)
+                    } else {
+                        _uiState.value = _uiState.value.copy(
+                            isBaixaLoading = false,
+                            baixaError = "Erro ao realizar baixa/separação"
+                        )
+                        onError("Erro ao realizar baixa/separação")
+                    }
+                } else {
+                    _uiState.value = _uiState.value.copy(
+                        isBaixaLoading = false,
+                        baixaError = "Erro na comunicação com o servidor"
+                    )
+                    onError("Erro na comunicação com o servidor")
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isBaixaLoading = false,
+                    baixaError = "Erro de conexão: ${e.message}"
+                )
+                onError("Erro de conexão: ${e.message}")
             }
         }
     }
@@ -146,6 +214,14 @@ class SeparacaoViewModel : ViewModel() {
     fun limparState() {
         _uiState.value = SeparacaoUiState()
     }
+
+    fun limparBaixaError() {
+        _uiState.value = _uiState.value.copy(baixaError = null)
+    }
+
+    fun limparBaixaSucesso() {
+        _uiState.value = _uiState.value.copy(showBaixaSucesso = false)
+    }
 }
 
 data class SeparacaoUiState(
@@ -157,5 +233,10 @@ data class SeparacaoUiState(
     val pedido: String = "",
     val setoresSelecionados: Set<String> = emptySet(),
     val filtrosLocais: List<FiltroLocal> = emptyList(),
-    val filtroSelecionado: String = FiltroLocal.FILTRO_TODOS
+    val filtroSelecionado: String = FiltroLocal.FILTRO_TODOS,
+    // Adicionado para controlar estado da baixa/separação
+    val isBaixaLoading: Boolean = false,
+    val baixaError: String? = null,
+    val showBaixaSucesso: Boolean = false,
+    val quantidadeBaixaRealizada: Int = 0
 )

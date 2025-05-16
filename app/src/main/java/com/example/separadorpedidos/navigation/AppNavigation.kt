@@ -8,6 +8,7 @@ import com.example.separadorpedidos.data.model.SetorDisponivel
 import com.example.separadorpedidos.presentation.screens.*
 
 sealed class Screen {
+    object Splash : Screen()
     object Main : Screen()
     data class SetorSelection(
         val numeroPedido: String,
@@ -31,7 +32,7 @@ sealed class Screen {
 @Composable
 fun AppNavigation() {
     // Estados preservados na rotação (apenas tipos básicos)
-    var screenType by rememberSaveable { mutableStateOf("Main") }
+    var screenType by rememberSaveable { mutableStateOf("Splash") }
     var numeroPedido by rememberSaveable { mutableStateOf("") }
     var nomeCliente by rememberSaveable { mutableStateOf("") }
     var setoresSelecionados by rememberSaveable { mutableStateOf(emptySet<String>()) }
@@ -41,27 +42,41 @@ fun AppNavigation() {
 
     // Recriar a tela atual baseado nos dados salvos
     val currentScreen = when (screenType) {
+        "Splash" -> Screen.Splash
         "Main" -> Screen.Main
         "SetorSelection" -> Screen.SetorSelection(numeroPedido, nomeCliente, setoresDisponiveis)
         "StatusSeparacao" -> Screen.StatusSeparacao(numeroPedido, nomeCliente)
         "SeparacaoMaterial" -> Screen.SeparacaoMaterial(numeroPedido, nomeCliente, setoresSelecionados)
         "RegistrarEntrega" -> Screen.RegistrarEntrega(numeroPedido, nomeCliente, setoresSelecionados)
-        else -> Screen.Main
+        else -> Screen.Splash
     }
 
     AnimatedContent(
         targetState = currentScreen,
         transitionSpec = {
-            slideInHorizontally(
-                initialOffsetX = { it },
-                animationSpec = tween(300)
-            ) with slideOutHorizontally(
-                targetOffsetX = { -it },
-                animationSpec = tween(300)
-            )
+            if (targetState is Screen.Splash || initialState is Screen.Splash) {
+                // Transição especial para splash
+                fadeIn(animationSpec = tween(500)) with fadeOut(animationSpec = tween(500))
+            } else {
+                slideInHorizontally(
+                    initialOffsetX = { it },
+                    animationSpec = tween(300)
+                ) with slideOutHorizontally(
+                    targetOffsetX = { -it },
+                    animationSpec = tween(300)
+                )
+            }
         }
     ) { screen ->
         when (screen) {
+            Screen.Splash -> {
+                SplashScreen(
+                    onSplashFinished = {
+                        screenType = "Main"
+                    }
+                )
+            }
+
             Screen.Main -> {
                 MainScreen(
                     onPedidoEncontrado = { pedido, cliente, setores ->
@@ -128,8 +143,7 @@ fun AppNavigation() {
                         screenType = "StatusSeparacao"
                     },
                     onRealizarBaixaClick = { produtosSelecionados ->
-                        // TODO: Implementar API de baixa/separação
-                        println("Produtos selecionados para baixa: $produtosSelecionados")
+                        // A ação é tratada internamente no ViewModel
                     }
                 )
             }
@@ -143,8 +157,7 @@ fun AppNavigation() {
                         screenType = "StatusSeparacao"
                     },
                     onRealizarEntregaClick = { produtosSelecionados ->
-                        // TODO: Implementar API de entrega
-                        println("Produtos selecionados para entrega: $produtosSelecionados")
+                        // A ação é tratada internamente no ViewModel
                     }
                 )
             }

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Background -->
+    <path
+        android:fillColor="#9F2340"
+        android:pathData="M0,0h108v108h-108z" />
+
+    <!-- Logo MVK em branco -->
+    <group android:translateX="54" android:translateY="54">
+        <!-- M -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M-30,-15 L-30,15 L-25,15 L-25,-5 L-20,10 L-15,10 L-10,-5 L-10,15 L-5,15 L-5,-15 L-15,-15 L-20,5 L-25,-15 Z" />
+
+        <!-- V -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M-2,-15 L-2,15 L3,15 L15,-5 L15,15 L20,15 L20,-15 L15,-15 L3,5 L3,-15 Z" />
+
+        <!-- K -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M22,-15 L22,15 L27,15 L27,2 L30,-15 L35,-15 L30,0 L35,15 L30,15 L27,2 L27,15 L22,15 L22,-15 Z" />
+    </group>
+</vector>

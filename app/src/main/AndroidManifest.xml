@@ -17,8 +17,10 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:theme="@style/Theme.SeparadorPedidos"
-            android:screenOrientation="portrait"> <!-- ADICIONE ESTA LINHA -->
+            android:theme="@style/Theme.SeparadorPedidos.Splash"
+            android:windowSoftInputMode="adjustResize"
+            android:screenOrientation="portrait">
+
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

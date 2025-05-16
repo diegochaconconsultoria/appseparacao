@@ -18,7 +18,11 @@ import com.example.separadorpedidos.data.model.FiltroLocal
 import com.example.separadorpedidos.presentation.viewmodel.SeparacaoViewModel
 import com.example.separadorpedidos.ui.components.*
 import com.example.separadorpedidos.ui.theme.SeparadorPedidosTheme
-
+import com.example.separadorpedidos.ui.components.BaixaSucessoDialog
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.material3.Scaffold
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SeparacaoMaterialScreen(
@@ -31,6 +35,9 @@ fun SeparacaoMaterialScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
+    // Estado para controlar a visibilidade do modal de sucesso
+    var showSucessoModal by remember { mutableStateOf(false) }
+
     // Buscar produtos quando a tela for carregada
     LaunchedEffect(numeroPedido, setoresSelecionados) {
         if (numeroPedido.isNotBlank() && setoresSelecionados.isNotEmpty()) {
@@ -38,149 +45,131 @@ fun SeparacaoMaterialScreen(
         }
     }
 
-    Column(
-        modifier = Modifier.fillMaxSize()
-    ) {
-        // App Bar
-        TopAppBar(
-            title = {
-                Column {
-                    Text(
-                        "Separação de Material",
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = "Pedido: $numeroPedido",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
-                    )
-                }
-            },
-            navigationIcon = {
-                IconButton(onClick = onVoltarClick) {
-                    Icon(
-                        Icons.Default.ArrowBack,
-                        contentDescription = "Voltar",
-                        tint = MaterialTheme.colorScheme.onPrimary
-                    )
-                }
-            },
-            colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = MaterialTheme.colorScheme.primary,
-                titleContentColor = MaterialTheme.colorScheme.onPrimary
-            )
-        )
+    // Verificar se todos os produtos foram separados
+    val produtosParaSeparar = uiState.produtos.filter { it.podeSelecionar() }
+    val todosSeparados = produtosParaSeparar.isEmpty() && uiState.produtos.isNotEmpty()
 
-        AnimatedScreen {
-            if (uiState.isLoading) {
-                // Loading State
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(64.dp),
-                            strokeWidth = 6.dp
+    // Mostrar modal quando todos estiverem separados (apenas uma vez)
+    LaunchedEffect(todosSeparados) {
+        if (todosSeparados && !showSucessoModal) {
+            showSucessoModal = true
+        }
+    }
+
+    // Observar erros de baixa
+    uiState.baixaError?.let { error ->
+        LaunchedEffect(error) {
+            viewModel.limparBaixaError()
+        }
+    }
+
+    // Box principal que ocupa toda a tela
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            // App Bar
+            TopAppBar(
+                title = {
+                    Column {
+                        Text(
+                            "Separação de Material",
+                            fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "Carregando produtos...",
-                            style = MaterialTheme.typography.titleMedium
+                            text = "Pedido: $numeroPedido",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
                         )
                     }
-                }
-            } else {
-                val currentError = uiState.error
+                },
+                navigationIcon = {
+                    IconButton(onClick = onVoltarClick) {
+                        Icon(
+                            Icons.Default.ArrowBack,
+                            contentDescription = "Voltar",
+                            tint = MaterialTheme.colorScheme.onPrimary
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimary
+                )
+            )
 
-                if (currentError != null) {
-                    // Error State
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(24.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
+            AnimatedScreen {
+                if (uiState.isLoading) {
+                    // Loading State
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
                     ) {
-                        AnimatedCard(
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.errorContainer
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(64.dp),
+                                strokeWidth = 6.dp
                             )
-                        ) {
-                            Column(
-                                modifier = Modifier.padding(20.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                                ) {
-                                    Icon(
-                                        Icons.Default.Error,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.onErrorContainer
-                                    )
-                                    Text(
-                                        text = "Erro",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.onErrorContainer
-                                    )
-                                }
-                                Text(
-                                    text = currentError,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onErrorContainer
-                                )
-                            }
-                        }
-
-                        ModernButton(
-                            onClick = onVoltarClick,
-                            isPrimary = false
-                        ) {
-                            Text("Voltar")
+                            Text(
+                                text = "Carregando produtos...",
+                                style = MaterialTheme.typography.titleMedium
+                            )
                         }
                     }
                 } else {
-                    // Success State
-                    // VERIFICAR SE TODOS OS PRODUTOS FORAM SEPARADOS
-                    val produtosParaSeparar = uiState.produtos.filter { it.podeSelecionar() }
+                    val currentError = uiState.error
 
-                    if (produtosParaSeparar.isEmpty() && uiState.produtos.isNotEmpty()) {
-                        // MOSTRAR ANIMAÇÃO - TODOS SEPARADOS
+                    if (currentError != null) {
+                        // Error State
                         Column(
-                            modifier = Modifier.fillMaxSize()
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(24.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
-                            TodosSeparadosAnimation()
-
-                            // Botão para voltar
-                            Surface(
-                                modifier = Modifier.fillMaxWidth(),
-                                color = MaterialTheme.colorScheme.surface,
-                                shadowElevation = 8.dp
+                            AnimatedCard(
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.errorContainer
+                                )
                             ) {
                                 Column(
-                                    modifier = Modifier.padding(24.dp)
+                                    modifier = Modifier.padding(20.dp),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
-                                    ModernButton(
-                                        onClick = onVoltarClick,
-                                        isPrimary = true
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                                     ) {
                                         Icon(
-                                            Icons.Default.ArrowBack,
+                                            Icons.Default.Error,
                                             contentDescription = null,
-                                            modifier = Modifier.size(20.dp)
+                                            tint = MaterialTheme.colorScheme.onErrorContainer
                                         )
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text("Voltar")
+                                        Text(
+                                            text = "Erro",
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onErrorContainer
+                                        )
                                     }
+                                    Text(
+                                        text = currentError,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onErrorContainer
+                                    )
                                 }
+                            }
+
+                            ModernButton(
+                                onClick = onVoltarClick,
+                                isPrimary = false
+                            ) {
+                                Text("Voltar")
                             }
                         }
                     } else {
-                        // MOSTRAR LISTA NORMAL DE PRODUTOS
+                        // Success State - Layout principal
                         Column(
                             modifier = Modifier.fillMaxSize()
                         ) {
@@ -298,10 +287,15 @@ fun SeparacaoMaterialScreen(
                                 }
                             }
 
-                            // Lista de produtos COMPACTA
+                            // Lista de produtos
                             LazyColumn(
                                 modifier = Modifier.weight(1f),
-                                contentPadding = PaddingValues(horizontal = 24.dp),
+                                contentPadding = PaddingValues(
+                                    start = 24.dp,
+                                    end = 24.dp,
+                                    top = 8.dp,
+                                    bottom = 140.dp // ESPAÇO EXTRA para o botão flutuante
+                                ),
                                 verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 items(uiState.produtos) { produto ->
@@ -313,52 +307,122 @@ fun SeparacaoMaterialScreen(
                                         }
                                     )
                                 }
-
-                                // Espaço extra no final
-                                item {
-                                    Spacer(modifier = Modifier.height(100.dp))
-                                }
-                            }
-                        }
-
-                        // Bottom Bar com botão de ação
-                        if (uiState.produtos.isNotEmpty()) {
-                            Surface(
-                                modifier = Modifier.fillMaxWidth(),
-                                color = MaterialTheme.colorScheme.surface,
-                                shadowElevation = 8.dp
-                            ) {
-                                Column(
-                                    modifier = Modifier.padding(24.dp),
-                                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                                ) {
-                                    if (uiState.produtosSelecionados.isNotEmpty()) {
-                                        Text(
-                                            text = "${uiState.produtosSelecionados.size} produtos selecionados",
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = MaterialTheme.colorScheme.onSurface
-                                        )
-                                    }
-
-                                    ModernButton(
-                                        onClick = { onRealizarBaixaClick(uiState.produtosSelecionados) },
-                                        enabled = uiState.produtosSelecionados.isNotEmpty()
-                                    ) {
-                                        Icon(
-                                            Icons.Default.Done,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(20.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text("Realizar Baixa/Separação")
-                                    }
-                                }
                             }
                         }
                     }
                 }
             }
         }
+
+        // BOTÃO FLUTUANTE - SEMPRE VISÍVEL NO FUNDO
+        if (uiState.produtos.isNotEmpty() && uiState.produtosSelecionados.isNotEmpty()) {
+            Surface(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                shape = RoundedCornerShape(16.dp),
+                shadowElevation = 16.dp, // Elevação alta para ficar acima de tudo
+                tonalElevation = 8.dp,
+                color = MaterialTheme.colorScheme.surface
+            ) {
+                Column(
+                    modifier = Modifier.padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // Informações de seleção
+                    Card(
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.CheckCircle,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Text(
+                                text = "${uiState.produtosSelecionados.size} produto(s) selecionado(s)",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        }
+                    }
+
+                    // Botão principal
+                    Button(
+                        onClick = {
+                            viewModel.realizarBaixaSeparacao(
+                                onSuccess = { },
+                                onError = { }
+                            )
+                        },
+                        enabled = !uiState.isBaixaLoading,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        if (uiState.isBaixaLoading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                strokeWidth = 2.dp
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Realizando...")
+                        } else {
+                            Icon(
+                                Icons.Default.Done,
+                                contentDescription = null,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Realizar Baixa/Separação",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Modal de sucesso
+    TodosSeparadosDialog(
+        isVisible = showSucessoModal,
+        onDismiss = { showSucessoModal = false }
+    )
+
+    // Dialog de sucesso da baixa
+    BaixaSucessoDialog(
+        isVisible = uiState.showBaixaSucesso,
+        quantidadeProdutos = uiState.quantidadeBaixaRealizada,
+        onDismiss = { viewModel.limparBaixaSucesso() }
+    )
+
+    // Mostrar erro de baixa se houver
+    uiState.baixaError?.let { error ->
+        AlertDialog(
+            onDismissRequest = { viewModel.limparBaixaError() },
+            title = { Text("Erro na Baixa/Separação") },
+            text = { Text(error) },
+            confirmButton = {
+                TextButton(onClick = { viewModel.limparBaixaError() }) {
+                    Text("OK")
+                }
+            }
+        )
     }
 }
 

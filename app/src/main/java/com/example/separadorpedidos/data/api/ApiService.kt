@@ -15,6 +15,12 @@ interface ApiService {
     @POST("VKSEPALMENT")
     suspend fun buscarProdutosEntrega(@Body request: EntregaRequest): Response<EntregaResponse>
 
-    @POST("VKSEPALMCONF") // API real para validação de senha
+    @POST("VKSEPALMCONF")
     suspend fun validarSenha(@Body request: ValidacaoSenhaRequest): Response<ValidacaoSenhaResponse>
+
+    @POST("VKSEPALMBX")
+    suspend fun realizarBaixaSeparacao(@Body request: BaixaSeparacaoRequest): Response<BaixaSeparacaoResponse>
+
+    @POST("VKSEPALMREENT")
+    suspend fun realizarEntrega(@Body request: RealizarEntregaRequest): Response<RealizarEntregaResponse>
 }

@@ -14,6 +14,9 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        // Mudar para tema normal após splash
+        setTheme(R.style.Theme_SeparadorPedidos)
+
         // Habilitar edge-to-edge para um visual mais moderno
         WindowCompat.setDecorFitsSystemWindows(window, false)
 

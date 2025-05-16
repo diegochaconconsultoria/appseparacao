@@ -89,14 +89,15 @@ fun ProdutoCompactCard(
                     }
                 }
 
-                // Descrição
+                // Descrição - FONTE AUMENTADA
                 Text(
                     text = produto.descricao,
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.bodyMedium,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
+                    fontWeight = FontWeight.Medium,
                     color = MaterialTheme.colorScheme.onSurface.copy(
-                        alpha = if (podeEntregar) 0.8f else 0.5f
+                        alpha = if (podeEntregar) 0.9f else 0.5f
                     )
                 )
 
@@ -107,26 +108,64 @@ fun ProdutoCompactCard(
                 ) {
                     Text(
                         text = "Orig: ${produto.getQtdOriginalFormatted()}",
-                        style = MaterialTheme.typography.labelSmall,
+                        style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(
                             alpha = if (podeEntregar) 1f else 0.6f
                         )
                     )
                     Text(
                         text = "Sep: ${produto.getQtdSeparadaFormatted()}",
-                        style = MaterialTheme.typography.labelSmall,
+                        style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(
                             alpha = if (podeEntregar) 1f else 0.6f
                         )
                     )
                     Text(
                         text = "Entregar: ${produto.getSaldoAEntregarFormatted()}",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Medium,
+                        style = MaterialTheme.typography.titleMedium, // FONTE AUMENTADA
+                        fontWeight = FontWeight.Bold,
                         color = if (podeEntregar)
                             MaterialTheme.colorScheme.tertiary
                         else
                             MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    )
+                }
+
+                // Setor e Origem em linha - ADICIONADO
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // Setor
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(
+                            Icons.Default.Business,
+                            contentDescription = null,
+                            modifier = Modifier.size(12.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(
+                                alpha = if (podeEntregar) 1f else 0.6f
+                            )
+                        )
+                        Text(
+                            text = "Setor: ${produto.setor}",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(
+                                alpha = if (podeEntregar) 1f else 0.6f
+                            )
+                        )
+                    }
+
+                    // Origem
+                    Text(
+                        text = "Origem: ${produto.origem}",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(
+                            alpha = if (podeEntregar) 1f else 0.6f
+                        )
                     )
                 }
             }

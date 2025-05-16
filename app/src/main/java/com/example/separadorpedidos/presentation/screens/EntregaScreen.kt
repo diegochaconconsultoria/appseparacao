@@ -31,6 +31,9 @@ fun EntregaScreen(
     val dialogState by viewModel.dialogState.collectAsState()
     var senhaDigitada by remember { mutableStateOf("") }
 
+    // Estado para controlar a visibilidade do modal de sucesso
+    var showSucessoModal by remember { mutableStateOf(false) }
+
     // Buscar produtos quando a tela for carregada
     LaunchedEffect(numeroPedido, setoresSelecionados) {
         if (numeroPedido.isNotBlank() && setoresSelecionados.isNotEmpty()) {
@@ -38,149 +41,124 @@ fun EntregaScreen(
         }
     }
 
-    Column(
-        modifier = Modifier.fillMaxSize()
-    ) {
-        // App Bar
-        TopAppBar(
-            title = {
-                Column {
-                    Text(
-                        "Registrar Entrega",
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = "Pedido: $numeroPedido",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
-                    )
-                }
-            },
-            navigationIcon = {
-                IconButton(onClick = onVoltarClick) {
-                    Icon(
-                        Icons.Default.ArrowBack,
-                        contentDescription = "Voltar",
-                        tint = MaterialTheme.colorScheme.onPrimary
-                    )
-                }
-            },
-            colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = MaterialTheme.colorScheme.tertiary,
-                titleContentColor = MaterialTheme.colorScheme.onTertiary
-            )
-        )
+    // Verificar se todos os produtos foram entregues
+    val produtosParaEntregar = uiState.produtos.filter { it.podeEntregar() }
+    val todosEntregues = produtosParaEntregar.isEmpty() && uiState.produtos.isNotEmpty()
 
-        AnimatedScreen {
-            if (uiState.isLoading) {
-                // Loading State
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(64.dp),
-                            strokeWidth = 6.dp
+    // Mostrar modal quando todos estiverem entregues (apenas uma vez)
+    LaunchedEffect(todosEntregues) {
+        if (todosEntregues && !showSucessoModal) {
+            showSucessoModal = true
+        }
+    }
+
+    // Box principal que ocupa toda a tela
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            // App Bar
+            TopAppBar(
+                title = {
+                    Column {
+                        Text(
+                            "Registrar Entrega",
+                            fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "Carregando produtos para entrega...",
-                            style = MaterialTheme.typography.titleMedium
+                            text = "Pedido: $numeroPedido",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
                         )
                     }
-                }
-            } else {
-                val currentError = uiState.error
+                },
+                navigationIcon = {
+                    IconButton(onClick = onVoltarClick) {
+                        Icon(
+                            Icons.Default.ArrowBack,
+                            contentDescription = "Voltar",
+                            tint = MaterialTheme.colorScheme.onPrimary
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.tertiary,
+                    titleContentColor = MaterialTheme.colorScheme.onTertiary
+                )
+            )
 
-                if (currentError != null) {
-                    // Error State
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(24.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
+            AnimatedScreen {
+                if (uiState.isLoading) {
+                    // Loading State
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
                     ) {
-                        AnimatedCard(
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.errorContainer
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(64.dp),
+                                strokeWidth = 6.dp
                             )
-                        ) {
-                            Column(
-                                modifier = Modifier.padding(20.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                                ) {
-                                    Icon(
-                                        Icons.Default.Error,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.onErrorContainer
-                                    )
-                                    Text(
-                                        text = "Erro",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.onErrorContainer
-                                    )
-                                }
-                                Text(
-                                    text = currentError,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onErrorContainer
-                                )
-                            }
-                        }
-
-                        ModernButton(
-                            onClick = onVoltarClick,
-                            isPrimary = false
-                        ) {
-                            Text("Voltar")
+                            Text(
+                                text = "Carregando produtos para entrega...",
+                                style = MaterialTheme.typography.titleMedium
+                            )
                         }
                     }
                 } else {
-                    // Success State
-                    // VERIFICAR SE TODOS OS PRODUTOS FORAM ENTREGUES
-                    val produtosParaEntregar = uiState.produtos.filter { it.podeEntregar() }
+                    val currentError = uiState.error
 
-                    if (produtosParaEntregar.isEmpty() && uiState.produtos.isNotEmpty()) {
-                        // MOSTRAR ANIMAÇÃO - TODOS ENTREGUES
+                    if (currentError != null) {
+                        // Error State
                         Column(
-                            modifier = Modifier.fillMaxSize()
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(24.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
-                            TodosEntreguesAnimation()
-
-                            // Botão para voltar
-                            Surface(
-                                modifier = Modifier.fillMaxWidth(),
-                                color = MaterialTheme.colorScheme.surface,
-                                shadowElevation = 8.dp
+                            AnimatedCard(
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.errorContainer
+                                )
                             ) {
                                 Column(
-                                    modifier = Modifier.padding(24.dp)
+                                    modifier = Modifier.padding(20.dp),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
-                                    ModernButton(
-                                        onClick = onVoltarClick,
-                                        isPrimary = true
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                                     ) {
                                         Icon(
-                                            Icons.Default.ArrowBack,
+                                            Icons.Default.Error,
                                             contentDescription = null,
-                                            modifier = Modifier.size(20.dp)
+                                            tint = MaterialTheme.colorScheme.onErrorContainer
                                         )
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text("Voltar")
+                                        Text(
+                                            text = "Erro",
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onErrorContainer
+                                        )
                                     }
+                                    Text(
+                                        text = currentError,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onErrorContainer
+                                    )
                                 }
+                            }
+
+                            ModernButton(
+                                onClick = onVoltarClick,
+                                isPrimary = false
+                            ) {
+                                Text("Voltar")
                             }
                         }
                     } else {
-                        // MOSTRAR LISTA NORMAL DE PRODUTOS
+                        // Success State - Layout principal
                         Column(
                             modifier = Modifier.fillMaxSize()
                         ) {
@@ -246,10 +224,15 @@ fun EntregaScreen(
                                 }
                             }
 
-                            // Lista de produtos COMPACTA
+                            // Lista de produtos
                             LazyColumn(
                                 modifier = Modifier.weight(1f),
-                                contentPadding = PaddingValues(horizontal = 24.dp),
+                                contentPadding = PaddingValues(
+                                    start = 24.dp,
+                                    end = 24.dp,
+                                    top = 8.dp,
+                                    bottom = 140.dp // ESPAÇO EXTRA para o botão flutuante
+                                ),
                                 verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 items(uiState.produtos) { produto ->
@@ -261,49 +244,90 @@ fun EntregaScreen(
                                         }
                                     )
                                 }
-
-                                // Espaço extra no final
-                                item {
-                                    Spacer(modifier = Modifier.height(100.dp))
-                                }
                             }
                         }
+                    }
+                }
+            }
+        }
 
-                        // Bottom Bar com botão de ação
-                        if (uiState.produtos.isNotEmpty()) {
-                            Surface(
-                                modifier = Modifier.fillMaxWidth(),
-                                color = MaterialTheme.colorScheme.surface,
-                                shadowElevation = 8.dp
-                            ) {
-                                Column(
-                                    modifier = Modifier.padding(24.dp),
-                                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                                ) {
-                                    if (uiState.produtosSelecionados.isNotEmpty()) {
-                                        Text(
-                                            text = "${uiState.produtosSelecionados.size} produtos selecionados para entrega",
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = MaterialTheme.colorScheme.onSurface
-                                        )
-                                    }
+        // BOTÃO FLUTUANTE - SEMPRE VISÍVEL NO FUNDO
+        if (uiState.produtos.isNotEmpty() && uiState.produtosSelecionados.isNotEmpty()) {
+            Surface(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                shape = MaterialTheme.shapes.large,
+                shadowElevation = 16.dp,
+                tonalElevation = 8.dp,
+                color = MaterialTheme.colorScheme.surface
+            ) {
+                Column(
+                    modifier = Modifier.padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // Informações de seleção
+                    Card(
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.tertiaryContainer
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.CheckCircle,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.tertiary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Text(
+                                text = "${uiState.produtosSelecionados.size} produto(s) selecionado(s) para entrega",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onTertiaryContainer
+                            )
+                        }
+                    }
 
-                                    ModernButton(
-                                        onClick = {
-                                            viewModel.mostrarDialogValidacao()
-                                        },
-                                        enabled = uiState.produtosSelecionados.isNotEmpty()
-                                    ) {
-                                        Icon(
-                                            Icons.Default.LocalShipping,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(20.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text("Realizar Entrega")
-                                    }
-                                }
-                            }
+                    // Botão principal
+                    Button(
+                        onClick = {
+                            viewModel.mostrarDialogValidacao()
+                        },
+                        enabled = !dialogState.isLoading,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
+                        shape = MaterialTheme.shapes.medium,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.tertiary
+                        )
+                    ) {
+                        if (dialogState.isLoading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                color = MaterialTheme.colorScheme.onTertiary,
+                                strokeWidth = 2.dp
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Realizando...")
+                        } else {
+                            Icon(
+                                Icons.Default.LocalShipping,
+                                contentDescription = null,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Realizar Entrega",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
                         }
                     }
                 }
@@ -320,9 +344,14 @@ fun EntregaScreen(
         onSenhaChange = { senhaDigitada = it },
         onConfirmar = {
             if (dialogState.nomeUsuario != null) {
-                viewModel.confirmarEntrega {
-                    onRealizarEntregaClick(uiState.produtosSelecionados)
-                }
+                viewModel.confirmarEntrega(
+                    onSuccess = {
+                        onRealizarEntregaClick(uiState.produtosSelecionados)
+                    },
+                    onError = { error ->
+                        // Erro será tratado pelo dialog
+                    }
+                )
             } else {
                 viewModel.validarSenha(senhaDigitada)
             }
@@ -335,6 +364,19 @@ fun EntregaScreen(
             viewModel.ocultarDialogValidacao()
             senhaDigitada = ""
         }
+    )
+
+    // Modal de sucesso para todos entregues
+    TodosEntreguesDialog(
+        isVisible = showSucessoModal,
+        onDismiss = { showSucessoModal = false }
+    )
+
+    // Dialog de sucesso da entrega
+    EntregaSucessoDialog(
+        isVisible = uiState.showEntregaSucesso,
+        quantidadeProdutos = uiState.quantidadeEntregaRealizada,
+        onDismiss = { viewModel.limparEntregaSucesso() }
     )
 }
 
