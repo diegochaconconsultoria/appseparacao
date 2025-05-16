@@ -20,7 +20,8 @@ import com.example.separadorpedidos.data.model.ProdutoSeparacao
 fun ProdutoSeparacaoCompactCard(
     produto: ProdutoSeparacao,
     isSelected: Boolean,
-    onToggleSelection: () -> Unit
+    onToggleSelection: () -> Unit,
+    onViewImage: () -> Unit = {} // SEMPRE mostra o botão, independente se tem imagem
 ) {
     val jaSeparado = produto.jaSeparado()
     val podeSelecionar = produto.podeSelecionar()
@@ -89,15 +90,15 @@ fun ProdutoSeparacaoCompactCard(
                     }
                 }
 
-                // Descrição - FONTE AUMENTADA
+                // Descrição
                 Text(
                     text = produto.descricao,
-                    style = MaterialTheme.typography.bodyMedium, // Mudado de bodySmall para bodyMedium
+                    style = MaterialTheme.typography.bodyMedium,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    fontWeight = FontWeight.Medium, // Adicionado peso médio para destacar
+                    fontWeight = FontWeight.Medium,
                     color = MaterialTheme.colorScheme.onSurface.copy(
-                        alpha = if (podeSelecionar) 0.9f else 0.5f // Aumentado a opacidade também
+                        alpha = if (podeSelecionar) 0.9f else 0.5f
                     )
                 )
 
@@ -108,14 +109,14 @@ fun ProdutoSeparacaoCompactCard(
                 ) {
                     Text(
                         text = "Orig: ${produto.getQtdOriginalFormatted()}",
-                        style = MaterialTheme.typography.labelMedium, // Mudado de labelSmall para labelMedium
+                        style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(
                             alpha = if (podeSelecionar) 1f else 0.6f
                         )
                     )
                     Text(
                         text = "Saldo: ${produto.getSaldoFormatted()}",
-                        style = MaterialTheme.typography.labelMedium, // Mudado de labelSmall para labelMedium
+                        style = MaterialTheme.typography.labelMedium,
                         fontWeight = if (jaSeparado) FontWeight.Medium else FontWeight.Normal,
                         color = if (jaSeparado)
                             Color(0xFF4CAF50).copy(alpha = if (podeSelecionar) 1f else 0.6f)
@@ -126,7 +127,7 @@ fun ProdutoSeparacaoCompactCard(
                     )
                     Text(
                         text = "A Sep: ${produto.getQtdaSepararFormatted()}",
-                        style = MaterialTheme.typography.titleMedium, // Mudado de labelLarge para titleMedium (ainda maior!)
+                        style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = if (podeSelecionar)
                             MaterialTheme.colorScheme.primary
@@ -156,7 +157,7 @@ fun ProdutoSeparacaoCompactCard(
                         )
                         Text(
                             text = if (produto.local.isBlank()) "S/ Local" else produto.getEnderecoCompleto(),
-                            style = MaterialTheme.typography.labelMedium, // Mudado de labelSmall para labelMedium
+                            style = MaterialTheme.typography.labelMedium,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(
@@ -168,12 +169,41 @@ fun ProdutoSeparacaoCompactCard(
                     // Setor
                     Text(
                         text = "Setor: ${produto.setor}",
-                        style = MaterialTheme.typography.labelMedium, // Mudado de labelSmall para labelMedium
+                        style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(
                             alpha = if (podeSelecionar) 1f else 0.6f
                         )
                     )
                 }
+            }
+
+            // BOTÃO VER FOTO - SEMPRE PRESENTE
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // Botão de visualizar/tirar foto
+                IconButton(
+                    onClick = onViewImage,
+                    colors = IconButtonDefaults.iconButtonColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
+                    ),
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Icon(
+                        Icons.Default.RemoveRedEye,
+                        contentDescription = "Ver/Tirar foto do produto",
+                        modifier = Modifier.size(20.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+
+                // Texto indicativo
+                Text(
+                    text = "Ver foto",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                )
             }
         }
     }

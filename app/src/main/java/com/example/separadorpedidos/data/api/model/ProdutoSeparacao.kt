@@ -43,6 +43,7 @@ data class ProdutoSeparacao(
     val estante: String,
     @SerializedName("Prateleira")
     val prateleira: String
+    // REMOVIDO: Campo TemImagem não é mais necessário
 ) {
     // Funções auxiliares para formatação
     fun getQtdOriginalFormatted(): String = formatQuantity(qtdOriginal)
@@ -50,10 +51,10 @@ data class ProdutoSeparacao(
     fun getQtdaSepararFormatted(): String = formatQuantity(qtdaSeparar)
     fun getQtdSegumFormatted(): String = formatQuantity(qtdSegum)
 
-    // ALTERADO: Função para verificar se já foi separado (saldo = 0)
+    // Função para verificar se já foi separado (saldo = 0)
     fun jaSeparado(): Boolean = saldo <= 0.0
 
-    // NOVO: Função para verificar se o produto pode ser selecionado
+    // Função para verificar se o produto pode ser selecionado
     fun podeSelecionar(): Boolean = !jaSeparado()
 
     // Função para obter o endereço completo do produto
@@ -92,7 +93,7 @@ data class ProdutoSeparacao(
     }
 }
 
-// Classe para representar um filtro de local
+// Classes auxiliares (sem alteração)
 data class FiltroLocal(
     val codigo: String,
     val descricao: String,
@@ -116,7 +117,6 @@ data class FiltroLocal(
     }
 }
 
-// Mapeamento de códigos dos setores (sem alteração)
 object CodigoSetores {
     private val mapeamento = mapOf(
         "Aramado" to "0001",
@@ -137,16 +137,14 @@ object CodigoSetores {
 
     fun obterCodigo(nomeSetor: String): String {
         return mapeamento[nomeSetor] ?: run {
-            // Se não encontrar pelo nome, verificar se já é um código
             if (nomeSetor.matches(Regex("\\d{4}"))) {
                 nomeSetor
             } else {
-                "9999" // Padrão para setores não encontrados
+                "9999"
             }
         }
     }
 
-    // NOVA FUNÇÃO: Obter nome do setor pelo código
     fun obterNomePorCodigo(codigo: String): String {
         return mapeamento.entries.find { it.value == codigo }?.key ?: codigo
     }

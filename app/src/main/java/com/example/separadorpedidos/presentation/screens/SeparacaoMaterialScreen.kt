@@ -52,6 +52,10 @@ fun SeparacaoMaterialScreen(
     // Estado para controlar a visibilidade do modal de sucesso
     var showSucessoModal by remember { mutableStateOf(false) }
 
+    // Estados para o dialog de imagem
+    var showImageDialog by remember { mutableStateOf(false) }
+    var selectedProduct by remember { mutableStateOf<com.example.separadorpedidos.data.model.ProdutoSeparacao?>(null) }
+
     // Buscar produtos quando a tela for carregada
     LaunchedEffect(numeroPedido, setoresSelecionados) {
         if (numeroPedido.isNotBlank() && setoresSelecionados.isNotEmpty()) {
@@ -324,6 +328,10 @@ fun SeparacaoMaterialScreen(
                                         isSelected = uiState.produtosSelecionados.contains(produto.produto),
                                         onToggleSelection = {
                                             viewModel.toggleProdutoSelecionado(produto.produto)
+                                        },
+                                        onViewImage = {
+                                            selectedProduct = produto
+                                            showImageDialog = true
                                         }
                                     )
                                 }
@@ -417,6 +425,20 @@ fun SeparacaoMaterialScreen(
                 }
             }
         }
+    }
+
+    // Dialog de visualização de imagem
+    selectedProduct?.let { produto ->
+        ProductImageDialog(
+            isVisible = showImageDialog,
+            codigoProduto = produto.produto,
+            productName = produto.descricao,
+            // REMOVIDO: imageUrl = produto.getImageUrl(),
+            onDismiss = {
+                showImageDialog = false
+                selectedProduct = null
+            }
+        )
     }
 
     // Modal de loading personalizado para separação
