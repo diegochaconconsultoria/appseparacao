@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    // Firebase não é mais necessário
 }
 
 android {
@@ -40,36 +41,31 @@ android {
 }
 
 dependencies {
-    // ViewModel
+    // Coil para carregamento de imagens (APENAS ESTA DEPENDÊNCIA NOVA)
+    implementation("io.coil-kt:coil-compose:2.5.0")
+
+    // Camera X para captura de fotos (APENAS ESTAS DEPENDÊNCIAS NOVAS)
+    implementation("androidx.camera:camera-camera2:1.3.1")
+    implementation("androidx.camera:camera-lifecycle:1.3.1")
+    implementation("androidx.camera:camera-view:1.3.1")
+
+    // Dependências existentes (não mexer)
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.6.2")
-    // Fragment
     implementation("androidx.fragment:fragment-ktx:1.6.1")
-    // Navigation
     implementation("androidx.navigation:navigation-fragment-ktx:2.7.2")
     implementation("androidx.navigation:navigation-ui-ktx:2.7.2")
-    // Retrofit para APIs
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
     implementation("com.squareup.retrofit2:converter-gson:2.9.0")
-    // Material Design
     implementation("com.google.android.material:material:1.9.0")
-
-    // Animações
     implementation("androidx.compose.animation:animation:1.5.4")
-
-    // Material 3 (se não estiver atualizado)
     implementation("androidx.compose.material3:material3:1.1.2")
-
-    // Icons extended (para mais ícones)
     implementation("androidx.compose.material:material-icons-extended:1.5.4")
-
-    // As dependências que já estavam no seu projeto
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.graphics)
-
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")

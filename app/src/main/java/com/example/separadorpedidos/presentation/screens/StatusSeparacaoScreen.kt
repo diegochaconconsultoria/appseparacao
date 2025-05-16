@@ -11,6 +11,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -103,35 +104,38 @@ fun StatusSeparacaoScreen(
                     }
                 }
 
-                // Cards de ação (REMOVIDO O CARD DE PROGRESSO)
+                // Cards de ação maiores e mais atrativos
                 Column(
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                    verticalArrangement = Arrangement.spacedBy(20.dp)
                 ) {
                     // Separar Material
-                    ActionCard(
+                    LargeActionCard(
                         title = "Separar Material",
-                        description = "Iniciar processo de separação dos itens",
+                        description = "Iniciar processo de separação dos itens do pedido por setor",
                         icon = Icons.Default.Inventory2,
                         onClick = onSepararMaterialClick,
-                        color = MaterialTheme.colorScheme.primary
+                        backgroundColor = MaterialTheme.colorScheme.primary,
+                        iconColor = MaterialTheme.colorScheme.primary
                     )
 
                     // Registrar Entrega
-                    ActionCard(
+                    LargeActionCard(
                         title = "Registrar Entrega",
-                        description = "Confirmar entrega dos materiais",
+                        description = "Confirmar entrega dos materiais com validação de senha",
                         icon = Icons.Default.LocalShipping,
                         onClick = onRegistrarEntregaClick,
-                        color = MaterialTheme.colorScheme.tertiary
+                        backgroundColor = Color(0xFF2196F3), // Azul em vez de tertiary
+                        iconColor = Color(0xFF2196F3) // Azul em vez de tertiary
                     )
 
                     // Visualizar Histórico
-                    ActionCard(
+                    LargeActionCard(
                         title = "Visualizar Histórico",
-                        description = "Ver histórico completo do pedido",
+                        description = "Ver histórico completo e status detalhado do pedido",
                         icon = Icons.Default.History,
                         onClick = onVisualizarHistoricoClick,
-                        color = MaterialTheme.colorScheme.secondary,
+                        backgroundColor = MaterialTheme.colorScheme.secondary,
+                        iconColor = MaterialTheme.colorScheme.secondary,
                         isPrimary = false
                     )
                 }
@@ -140,75 +144,119 @@ fun StatusSeparacaoScreen(
     }
 }
 
-// As funções ProgressItem e ActionCard permanecem iguais...
-
 @Composable
-fun ActionCard(
+fun LargeActionCard(
     title: String,
     description: String,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     onClick: () -> Unit,
-    color: androidx.compose.ui.graphics.Color,
+    backgroundColor: androidx.compose.ui.graphics.Color,
+    iconColor: androidx.compose.ui.graphics.Color,
     isPrimary: Boolean = true
 ) {
+    var isPressed by remember { mutableStateOf(false) }
+
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.98f else 1f,
+        animationSpec = tween(150),
+        label = "cardScale"
+    )
+
     AnimatedCard(
-        onClick = onClick,
+        onClick = {
+            isPressed = true
+            onClick()
+            isPressed = false
+        },
         colors = CardDefaults.cardColors(
             containerColor = if (isPrimary)
-                color.copy(alpha = 0.1f)
+                backgroundColor.copy(alpha = 0.1f)
             else
                 MaterialTheme.colorScheme.surface
-        )
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+        modifier = Modifier.fillMaxWidth()
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        Column(
+            modifier = Modifier.padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            Surface(
-                shape = MaterialTheme.shapes.medium,
-                color = color.copy(alpha = 0.2f),
-                modifier = Modifier.size(56.dp)
+            // Linha superior com ícone e título
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(20.dp)
             ) {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier.fillMaxSize()
+                // Ícone grande em um círculo colorido
+                Surface(
+                    shape = MaterialTheme.shapes.large,
+                    color = iconColor.copy(alpha = 0.15f),
+                    modifier = Modifier.size(80.dp)
                 ) {
-                    Icon(
-                        icon,
-                        contentDescription = null,
-                        modifier = Modifier.size(28.dp),
-                        tint = color
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        Icon(
+                            icon,
+                            contentDescription = null,
+                            modifier = Modifier.size(40.dp),
+                            tint = iconColor
+                        )
+                    }
+                }
+
+                // Título e descrição
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = description,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        lineHeight = MaterialTheme.typography.bodyLarge.lineHeight
                     )
                 }
+
+                // Seta indicando ação
+                Icon(
+                    Icons.Default.ArrowForward,
+                    contentDescription = null,
+                    modifier = Modifier.size(28.dp),
+                    tint = iconColor
+                )
             }
 
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+            // Linha inferior com detalhes adicionais (opcional)
+            Divider(
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                thickness = 1.dp
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = description,
+                    text = "Toque para ${title.lowercase()}",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = iconColor,
+                    fontWeight = FontWeight.Medium
                 )
             }
-
-            Icon(
-                Icons.Default.ArrowForward,
-                contentDescription = null,
-                tint = color
-            )
         }
     }
 }
+
+// As funções ProgressItem e ActionCard antigas podem ser removidas se não utilizadas
 
 @Preview(showBackground = true)
 @Composable

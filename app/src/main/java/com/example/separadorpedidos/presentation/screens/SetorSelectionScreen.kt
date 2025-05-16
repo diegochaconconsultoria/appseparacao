@@ -119,7 +119,7 @@ fun SetorSelectionScreen(
                     }
                 }
 
-                // Chips dos setores selecionados - SEM BARRA DE PROGRESSO
+                /*// Chips dos setores selecionados - SEM BARRA DE PROGRESSO
                 if (setoresSelecionados.isNotEmpty()) {
                     AnimatedCard {
                         Column(
@@ -157,7 +157,7 @@ fun SetorSelectionScreen(
                             }
                         }
                     }
-                }
+                }*/
 
                 // Grid de setores expandido - SEM ALTURA FIXA
                 AnimatedCard {

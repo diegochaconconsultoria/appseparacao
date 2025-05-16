@@ -1,29 +1,40 @@
+@file:OptIn(ExperimentalMaterial3Api::class)
+
 package com.example.separadorpedidos.presentation.screens
 
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.separadorpedidos.data.model.FiltroLocal
 import com.example.separadorpedidos.presentation.viewmodel.SeparacaoViewModel
 import com.example.separadorpedidos.ui.components.*
 import com.example.separadorpedidos.ui.theme.SeparadorPedidosTheme
-import com.example.separadorpedidos.ui.components.BaixaSucessoDialog
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.systemBars
-import androidx.compose.material3.Scaffold
-@OptIn(ExperimentalMaterial3Api::class)
+
+// Cores para tema de separação
+val GreenPrimary = Color(0xFF4CAF50)
+val GreenContainer = Color(0xFFE8F5E9)
+
 @Composable
 fun SeparacaoMaterialScreen(
     numeroPedido: String,
@@ -34,6 +45,9 @@ fun SeparacaoMaterialScreen(
     viewModel: SeparacaoViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+
+    // Estado para controlar a animação de loading
+    var showLoadingModal by remember { mutableStateOf(false) }
 
     // Estado para controlar a visibilidade do modal de sucesso
     var showSucessoModal by remember { mutableStateOf(false) }
@@ -56,9 +70,15 @@ fun SeparacaoMaterialScreen(
         }
     }
 
+    // Observar o estado de loading da baixa
+    LaunchedEffect(uiState.isBaixaLoading) {
+        showLoadingModal = uiState.isBaixaLoading
+    }
+
     // Observar erros de baixa
     uiState.baixaError?.let { error ->
         LaunchedEffect(error) {
+            showLoadingModal = false
             viewModel.limparBaixaError()
         }
     }
@@ -360,18 +380,19 @@ fun SeparacaoMaterialScreen(
                     // Botão principal
                     Button(
                         onClick = {
+                            showLoadingModal = true
                             viewModel.realizarBaixaSeparacao(
                                 onSuccess = { },
                                 onError = { }
                             )
                         },
-                        enabled = !uiState.isBaixaLoading,
+                        enabled = !uiState.isBaixaLoading && !showLoadingModal,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(56.dp),
                         shape = RoundedCornerShape(12.dp)
                     ) {
-                        if (uiState.isBaixaLoading) {
+                        if (uiState.isBaixaLoading || showLoadingModal) {
                             CircularProgressIndicator(
                                 modifier = Modifier.size(20.dp),
                                 color = MaterialTheme.colorScheme.onPrimary,
@@ -398,6 +419,12 @@ fun SeparacaoMaterialScreen(
         }
     }
 
+    // Modal de loading personalizado para separação
+    SeparacaoLoadingModal(
+        isVisible = showLoadingModal,
+        onDismiss = { }
+    )
+
     // Modal de sucesso
     TodosSeparadosDialog(
         isVisible = showSucessoModal,
@@ -408,21 +435,235 @@ fun SeparacaoMaterialScreen(
     BaixaSucessoDialog(
         isVisible = uiState.showBaixaSucesso,
         quantidadeProdutos = uiState.quantidadeBaixaRealizada,
-        onDismiss = { viewModel.limparBaixaSucesso() }
+        onDismiss = {
+            showLoadingModal = false
+            viewModel.limparBaixaSucesso()
+        }
     )
 
     // Mostrar erro de baixa se houver
     uiState.baixaError?.let { error ->
         AlertDialog(
-            onDismissRequest = { viewModel.limparBaixaError() },
+            onDismissRequest = {
+                showLoadingModal = false
+                viewModel.limparBaixaError()
+            },
             title = { Text("Erro na Baixa/Separação") },
             text = { Text(error) },
             confirmButton = {
-                TextButton(onClick = { viewModel.limparBaixaError() }) {
+                TextButton(onClick = {
+                    showLoadingModal = false
+                    viewModel.limparBaixaError()
+                }) {
                     Text("OK")
                 }
             }
         )
+    }
+}
+
+@Composable
+fun SeparacaoLoadingModal(
+    isVisible: Boolean,
+    onDismiss: () -> Unit
+) {
+    if (isVisible) {
+        Dialog(
+            onDismissRequest = { }, // Não permite fechar
+            properties = DialogProperties(
+                dismissOnBackPress = false,
+                dismissOnClickOutside = false
+            )
+        ) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                SeparacaoLoadingContent()
+            }
+        }
+    }
+}
+
+@Composable
+private fun SeparacaoLoadingContent() {
+    // Animações para os círculos pulsantes
+    val infiniteTransition = rememberInfiniteTransition(label = "separacaoLoading")
+
+    val scale1 by infiniteTransition.animateFloat(
+        initialValue = 0.6f,
+        targetValue = 1.0f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1200),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "scale1"
+    )
+
+    val scale2 by infiniteTransition.animateFloat(
+        initialValue = 1.0f,
+        targetValue = 0.6f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1200),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "scale2"
+    )
+
+    val alpha1 by infiniteTransition.animateFloat(
+        initialValue = 0.4f,
+        targetValue = 1.0f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1200),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "alpha1"
+    )
+
+    val alpha2 by infiniteTransition.animateFloat(
+        initialValue = 1.0f,
+        targetValue = 0.4f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1200),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "alpha2"
+    )
+
+    // Animação de rotação múltipla para os ícones
+    val rotation1 by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2500, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "rotation1"
+    )
+
+    val rotation2 by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = -360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "rotation2"
+    )
+
+    Card(
+        modifier = Modifier
+            .size(300.dp)
+            .scale(1.0f),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White.copy(alpha = 0.95f)
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 16.dp
+        )
+    ) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            // Círculos pulsantes de fundo
+            Box(
+                modifier = Modifier
+                    .size(200.dp)
+                    .scale(scale1)
+                    .background(
+                        color = GreenPrimary.copy(alpha = alpha1 * 0.2f),
+                        shape = CircleShape
+                    )
+            )
+
+            Box(
+                modifier = Modifier
+                    .size(130.dp)
+                    .scale(scale2)
+                    .background(
+                        color = GreenPrimary.copy(alpha = alpha2 * 0.3f),
+                        shape = CircleShape
+                    )
+            )
+
+            // Conteúdo central
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(20.dp)
+            ) {
+                // Container com ícones rotativos
+                Box(
+                    modifier = Modifier.size(100.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    // Ícone de inventário (rotação lenta)
+                    Box(
+                        modifier = Modifier
+                            .size(80.dp)
+                            .rotate(rotation1)
+                            .background(
+                                color = GreenPrimary.copy(alpha = 0.1f),
+                                shape = CircleShape
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Inventory2,
+                            contentDescription = null,
+                            modifier = Modifier.size(35.dp),
+                            tint = GreenPrimary
+                        )
+                    }
+
+                    // Ícone de check (rotação rápida, menor)
+                    Box(
+                        modifier = Modifier
+                            .size(50.dp)
+                            .rotate(rotation2)
+                            .offset(x = 25.dp, y = (-25).dp)
+                            .background(
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                shape = CircleShape
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Done,
+                            contentDescription = null,
+                            modifier = Modifier.size(25.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+
+                // Textos
+                Text(
+                    text = "Realizando Baixa",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = GreenPrimary
+                )
+
+                Text(
+                    text = "Aguarde enquanto processamos a separação dos materiais...",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
+
+                // Barra de progresso indeterminada
+                LinearProgressIndicator(
+                    modifier = Modifier
+                        .width(140.dp)
+                        .height(4.dp),
+                    color = GreenPrimary,
+                    trackColor = GreenPrimary.copy(alpha = 0.2f),
+                )
+            }
+        }
     }
 }
 
