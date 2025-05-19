@@ -25,18 +25,7 @@ fun ProdutoSeparacaoCompactCard(
     val jaSeparado = produto.jaSeparado()
     val podeSelecionar = produto.podeSelecionar()
 
-    // Estado para controlar a visibilidade do diálogo de imagem
-    var showImageDialog by remember { mutableStateOf(false) }
-
-    // Renderizar o diálogo de imagem quando necessário
-    if (showImageDialog) {
-        ProductImageDialogBase64(
-            isVisible = true,
-            codigoProduto = produto.produto,
-            productName = produto.descricao,
-            onDismiss = { showImageDialog = false }
-        )
-    }
+    // Removido o controle de estado do dialog e sua renderização dentro do card
 
     AnimatedCard(
         onClick = if (podeSelecionar) onToggleSelection else { {} },
@@ -194,12 +183,9 @@ fun ProdutoSeparacaoCompactCard(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Botão de visualizar/tirar foto - ATUALIZADO PARA ABRIR O DIÁLOGO BASE64
+                // Botão de visualizar/tirar foto - agora só chama onViewImage
                 IconButton(
-                    onClick = {
-                        showImageDialog = true
-                        onViewImage()
-                    },
+                    onClick = { onViewImage() },  // Removida a lógica interna de mostrar diálogo
                     colors = IconButtonDefaults.iconButtonColors(
                         containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
                     ),

@@ -496,13 +496,6 @@ private fun ErrorContentBase64(
 
 // FUNÇÃO CORRIGIDA - Com verificação de cache e sem referências não resolvidas
 private fun loadImageBase64(codigoProduto: String, onResult: (ImageStateBase64) -> Unit) {
-    // Verificar cache
-    if (imageCache.containsKey(codigoProduto)) {
-        Log.d("ImageDialog", "Usando imagem do cache para $codigoProduto")
-        onResult(ImageStateBase64.HasImage(imageCache[codigoProduto]!!))
-        return
-    }
-
     CoroutineScope(Dispatchers.IO).launch {
         try {
             Log.d("ImageDialog", "Chamando API para produto: $codigoProduto")
@@ -515,25 +508,25 @@ private fun loadImageBase64(codigoProduto: String, onResult: (ImageStateBase64) 
                 if (response.isSuccessful) {
                     val imageResponse = response.body()
 
-                    // Log dos detalhes da resposta
+                    // Log detalhes da resposta
                     Log.d("ImageDialog", "Success: ${imageResponse?.success}")
+                    Log.d("ImageDialog", "Base64 presente: ${!imageResponse?.imageBase64.isNullOrEmpty()}")
 
                     if (imageResponse?.success == true && !imageResponse.imageBase64.isNullOrEmpty()) {
-                        Log.d("ImageDialog", "Base64 recebido, tamanho: ${imageResponse.imageBase64.length}")
+                        // Verificar se o Base64 tem prefixo de data URL
+                        var base64Data = imageResponse.imageBase64
+                        if (base64Data.contains(",")) {
+                            base64Data = base64Data.substring(base64Data.indexOf(",") + 1)
+                        }
 
-                        // Decodificar diretamente - sem manipulação do string
                         try {
-                            val imageBytes = Base64.decode(imageResponse.imageBase64, Base64.DEFAULT)
+                            val imageBytes = Base64.decode(base64Data, Base64.DEFAULT)
                             Log.d("ImageDialog", "Base64 decodificado, bytes: ${imageBytes.size}")
 
                             val loadedBitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
 
                             if (loadedBitmap != null) {
                                 Log.d("ImageDialog", "Bitmap criado: ${loadedBitmap.width}x${loadedBitmap.height}")
-
-                                // Adicionar ao cache
-                                imageCache[codigoProduto] = loadedBitmap
-
                                 onResult(ImageStateBase64.HasImage(loadedBitmap))
                             } else {
                                 Log.e("ImageDialog", "Falha ao criar Bitmap dos bytes")

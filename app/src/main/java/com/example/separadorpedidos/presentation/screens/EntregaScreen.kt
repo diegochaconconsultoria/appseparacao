@@ -580,18 +580,37 @@ fun EntregaScreen(
                                     start = 24.dp,
                                     end = 24.dp,
                                     top = 8.dp,
-                                    bottom = 140.dp // ESPAÇO EXTRA para o botão flutuante
+                                    bottom = 140.dp
                                 ),
                                 verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 items(uiState.produtos) { produto ->
-                                    ProdutoEntregaCard(
+                                    // Estado local para controlar se mostra a imagem para este produto específico
+                                    var showProductImageDialog by remember { mutableStateOf(false) }
+
+                                    // O dialog associado a este item específico
+                                    if (showProductImageDialog) {
+                                        ProductImageDialogBase64(
+                                            isVisible = true,
+                                            codigoProduto = produto.produto,
+                                            productName = produto.descricao,
+                                            onDismiss = { showProductImageDialog = false }
+                                        )
+                                    }
+
+                                    ProdutoCompactCard(
                                         produto = produto,
                                         isSelected = uiState.produtosSelecionados.contains(produto.produto),
                                         onToggleSelection = {
                                             viewModel.toggleProdutoSelecionado(produto.produto)
+                                        },
+                                        onViewImage = {
+                                            showProductImageDialog = true
                                         }
                                     )
+
+
+
                                 }
                             }
                         }

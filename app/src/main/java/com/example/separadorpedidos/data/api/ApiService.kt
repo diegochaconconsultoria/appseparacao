@@ -6,6 +6,7 @@ import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.Path
+import retrofit2.http.Query  // Adicione esta importação
 
 interface ApiService {
     @POST("VKSEPALMCS")
@@ -27,11 +28,11 @@ interface ApiService {
     suspend fun realizarEntrega(@Body request: RealizarEntregaRequest): Response<RealizarEntregaResponse>
 
     // Endpoint atualizado para usar ImageResponse
-    @GET("VKSEPALMIMG/codigoProduto")
-    suspend fun getProductImage(@Path("codigoProduto") codigoProduto: String): Response<ImageResponse>
+    @GET("VKSEPALOPENIMG")
+    suspend fun getProductImage(@Query("codigoProduto") codigoProduto: String): Response<ImageResponse>
 
     // CORRIGIDO: uploadProductImage usando ImageUploadRequest em vez de Map
-    @POST("VKSEPALMIMG/codigoProduto")
+   @POST("VKSEPALMIMG/codigoProduto")
     suspend fun uploadProductImage(
         @Path("codigoProduto") codigoProduto: String,
         @Body request: ImageUploadRequest

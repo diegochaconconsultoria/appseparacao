@@ -19,23 +19,13 @@ import com.example.separadorpedidos.data.model.ProdutoEntrega
 fun ProdutoCompactCard(
     produto: ProdutoEntrega,
     isSelected: Boolean,
-    onToggleSelection: () -> Unit
+    onToggleSelection: () -> Unit,
+    onViewImage: () -> Unit = {}
 ) {
     val podeEntregar = produto.podeEntregar()
     val jaEntregue = produto.jaEntregue()
 
-    // Estado para controlar a visibilidade do diálogo de imagem
-    var showImageDialog by remember { mutableStateOf(false) }
-
-    // Renderizar o diálogo de imagem quando necessário
-    if (showImageDialog) {
-        ProductImageDialogBase64(
-            isVisible = true,
-            codigoProduto = produto.produto,
-            productName = produto.descricao,
-            onDismiss = { showImageDialog = false }
-        )
-    }
+    // Removido o controle de estado do dialog e sua renderização dentro do card
 
     AnimatedCard(
         onClick = if (podeEntregar) onToggleSelection else { {} },
@@ -189,7 +179,7 @@ fun ProdutoCompactCard(
             ) {
                 // Botão de visualizar/tirar foto
                 IconButton(
-                    onClick = { showImageDialog = true },
+                    onClick = { onViewImage() },  // Agora apenas chama o callback
                     colors = IconButtonDefaults.iconButtonColors(
                         containerColor = Color(0xFF2196F3).copy(alpha = 0.15f)
                     ),
