@@ -1,7 +1,6 @@
 package com.example.separadorpedidos.data.api
 
 import com.example.separadorpedidos.data.model.*
-import okhttp3.ResponseBody
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -27,13 +26,14 @@ interface ApiService {
     @POST("VKSEPALMREENT")
     suspend fun realizarEntrega(@Body request: RealizarEntregaRequest): Response<RealizarEntregaResponse>
 
-    // NOVOS ENDPOINTS PARA IMAGENS
-    @GET("VKSEPALMIMG/{codigoProduto}")
-    suspend fun getProductImage(@Path("codigoProduto") codigoProduto: String): Response<ResponseBody>
+    // Endpoint atualizado para usar ImageResponse
+    @GET("VKSEPALMIMG/codigoProduto")
+    suspend fun getProductImage(@Path("codigoProduto") codigoProduto: String): Response<ImageResponse>
 
-    @POST("VKSEPALMIMG/{codigoProduto}")
+    // CORRIGIDO: uploadProductImage usando ImageUploadRequest em vez de Map
+    @POST("VKSEPALMIMG/codigoProduto")
     suspend fun uploadProductImage(
         @Path("codigoProduto") codigoProduto: String,
         @Body request: ImageUploadRequest
-    ): Response<ImageUploadResponse>
+    ): Response<ImageResponse>
 }

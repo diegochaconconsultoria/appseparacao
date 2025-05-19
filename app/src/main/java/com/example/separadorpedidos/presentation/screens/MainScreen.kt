@@ -32,6 +32,7 @@ fun MainScreen(
     val uiState by viewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
 
+
     // Observar quando o pedido for encontrado
     LaunchedEffect(uiState.pedidoEncontrado) {
         if (uiState.pedidoEncontrado) {

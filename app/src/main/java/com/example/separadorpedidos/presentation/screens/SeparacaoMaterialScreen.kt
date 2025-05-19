@@ -429,11 +429,10 @@ fun SeparacaoMaterialScreen(
 
     // Dialog de visualização de imagem
     selectedProduct?.let { produto ->
-        ProductImageDialog(
+        ProductImageDialogBase64(
             isVisible = showImageDialog,
             codigoProduto = produto.produto,
             productName = produto.descricao,
-            // REMOVIDO: imageUrl = produto.getImageUrl(),
             onDismiss = {
                 showImageDialog = false
                 selectedProduct = null

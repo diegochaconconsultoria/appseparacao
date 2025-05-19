@@ -1,6 +1,5 @@
 package com.example.separadorpedidos.ui.components
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -24,6 +23,19 @@ fun ProdutoCompactCard(
 ) {
     val podeEntregar = produto.podeEntregar()
     val jaEntregue = produto.jaEntregue()
+
+    // Estado para controlar a visibilidade do diálogo de imagem
+    var showImageDialog by remember { mutableStateOf(false) }
+
+    // Renderizar o diálogo de imagem quando necessário
+    if (showImageDialog) {
+        ProductImageDialogBase64(
+            isVisible = true,
+            codigoProduto = produto.produto,
+            productName = produto.descricao,
+            onDismiss = { showImageDialog = false }
+        )
+    }
 
     AnimatedCard(
         onClick = if (podeEntregar) onToggleSelection else { {} },
@@ -89,7 +101,7 @@ fun ProdutoCompactCard(
                     }
                 }
 
-                // Descrição - FONTE AUMENTADA
+                // Descrição
                 Text(
                     text = produto.descricao,
                     style = MaterialTheme.typography.bodyMedium,
@@ -122,7 +134,7 @@ fun ProdutoCompactCard(
                     )
                     Text(
                         text = "Entregar: ${produto.getSaldoAEntregarFormatted()}",
-                        style = MaterialTheme.typography.titleMedium, // FONTE AUMENTADA
+                        style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = if (podeEntregar)
                             MaterialTheme.colorScheme.tertiary
@@ -131,7 +143,7 @@ fun ProdutoCompactCard(
                     )
                 }
 
-                // Setor e Origem em linha - ADICIONADO
+                // Setor e Origem em linha
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -168,6 +180,35 @@ fun ProdutoCompactCard(
                         )
                     )
                 }
+            }
+
+            // BOTÃO VER FOTO
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // Botão de visualizar/tirar foto
+                IconButton(
+                    onClick = { showImageDialog = true },
+                    colors = IconButtonDefaults.iconButtonColors(
+                        containerColor = Color(0xFF2196F3).copy(alpha = 0.15f)
+                    ),
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Icon(
+                        Icons.Default.RemoveRedEye,
+                        contentDescription = "Ver/Tirar foto do produto",
+                        modifier = Modifier.size(20.dp),
+                        tint = Color(0xFF2196F3)
+                    )
+                }
+
+                // Texto indicativo
+                Text(
+                    text = "Ver foto",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                )
             }
         }
     }

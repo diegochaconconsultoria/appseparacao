@@ -1,6 +1,5 @@
 package com.example.separadorpedidos.ui.components
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -21,10 +20,23 @@ fun ProdutoSeparacaoCompactCard(
     produto: ProdutoSeparacao,
     isSelected: Boolean,
     onToggleSelection: () -> Unit,
-    onViewImage: () -> Unit = {} // SEMPRE mostra o botão, independente se tem imagem
+    onViewImage: () -> Unit = {}
 ) {
     val jaSeparado = produto.jaSeparado()
     val podeSelecionar = produto.podeSelecionar()
+
+    // Estado para controlar a visibilidade do diálogo de imagem
+    var showImageDialog by remember { mutableStateOf(false) }
+
+    // Renderizar o diálogo de imagem quando necessário
+    if (showImageDialog) {
+        ProductImageDialogBase64(
+            isVisible = true,
+            codigoProduto = produto.produto,
+            productName = produto.descricao,
+            onDismiss = { showImageDialog = false }
+        )
+    }
 
     AnimatedCard(
         onClick = if (podeSelecionar) onToggleSelection else { {} },
@@ -182,9 +194,12 @@ fun ProdutoSeparacaoCompactCard(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Botão de visualizar/tirar foto
+                // Botão de visualizar/tirar foto - ATUALIZADO PARA ABRIR O DIÁLOGO BASE64
                 IconButton(
-                    onClick = onViewImage,
+                    onClick = {
+                        showImageDialog = true
+                        onViewImage()
+                    },
                     colors = IconButtonDefaults.iconButtonColors(
                         containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
                     ),
