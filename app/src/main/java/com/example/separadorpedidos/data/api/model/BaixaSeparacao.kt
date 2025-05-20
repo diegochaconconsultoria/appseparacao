@@ -7,7 +7,9 @@ data class BaixaSeparacaoRequest(
     @SerializedName("Pedido")
     val pedido: String,
     @SerializedName("Produtos")
-    val produtos: List<ProdutoBaixa>
+    val produtos: List<ProdutoBaixa>,
+    @SerializedName("Usuario")  // Novo campo
+    val usuario: String = ""    // Campo para o nome do usuário
 )
 
 data class ProdutoBaixa(

@@ -19,17 +19,23 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.separadorpedidos.data.model.FiltroLocal
+import com.example.separadorpedidos.data.model.ProdutoSeparacao
 import com.example.separadorpedidos.presentation.viewmodel.SeparacaoViewModel
 import com.example.separadorpedidos.ui.components.*
 import com.example.separadorpedidos.ui.theme.SeparadorPedidosTheme
+// Adicione estas importações no topo do arquivo:
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 
 // Cores para tema de separação
 val GreenPrimary = Color(0xFF4CAF50)
@@ -45,6 +51,7 @@ fun SeparacaoMaterialScreen(
     viewModel: SeparacaoViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
 
     // Estado para controlar a animação de loading
     var showLoadingModal by remember { mutableStateOf(false) }
@@ -52,9 +59,12 @@ fun SeparacaoMaterialScreen(
     // Estado para controlar a visibilidade do modal de sucesso
     var showSucessoModal by remember { mutableStateOf(false) }
 
+    // Estado para controlar a visibilidade do diálogo de confirmação do email
+    var showConfirmEmailDialog by remember { mutableStateOf(false) }
+
     // Estados para o dialog de imagem
     var showImageDialog by remember { mutableStateOf(false) }
-    var selectedProduct by remember { mutableStateOf<com.example.separadorpedidos.data.model.ProdutoSeparacao?>(null) }
+    var selectedProduct by remember { mutableStateOf<ProdutoSeparacao?>(null) }
 
     // Buscar produtos quando a tela for carregada
     LaunchedEffect(numeroPedido, setoresSelecionados) {
@@ -227,34 +237,77 @@ fun SeparacaoMaterialScreen(
                                     }
                                 }
 
-                                // Card com estatísticas
+                                // Card com estatísticas e botão de comunicar falta
                                 AnimatedCard {
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(20.dp),
-                                        horizontalArrangement = Arrangement.SpaceEvenly
+                                    Column(
+                                        modifier = Modifier.padding(16.dp),
+                                        verticalArrangement = Arrangement.spacedBy(12.dp)
                                     ) {
-                                        StatisticItem(
-                                            icon = Icons.Default.Inventory,
-                                            label = "Total",
-                                            value = uiState.produtosTodos.size.toString()
-                                        )
-                                        StatisticItem(
-                                            icon = Icons.Default.CheckCircle,
-                                            label = "Selecionados",
-                                            value = uiState.produtosSelecionados.size.toString()
-                                        )
-                                        StatisticItem(
-                                            icon = Icons.Default.Done,
-                                            label = "Separados",
-                                            value = uiState.produtos.count { it.jaSeparado() }.toString()
-                                        )
-                                        StatisticItem(
-                                            icon = Icons.Default.FilterList,
-                                            label = "Filtrados",
-                                            value = uiState.produtos.size.toString()
-                                        )
+                                        // Estatísticas existentes
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(bottom = 8.dp),
+                                            horizontalArrangement = Arrangement.SpaceEvenly
+                                        ) {
+                                            StatisticItem(
+                                                icon = Icons.Default.Inventory,
+                                                label = "Total",
+                                                value = uiState.produtosTodos.size.toString()
+                                            )
+                                            StatisticItem(
+                                                icon = Icons.Default.CheckCircle,
+                                                label = "Selecionados",
+                                                value = uiState.produtosSelecionados.size.toString()
+                                            )
+                                            StatisticItem(
+                                                icon = Icons.Default.Done,
+                                                label = "Separados",
+                                                value = uiState.produtos.count { it.jaSeparado() }.toString()
+                                            )
+                                            StatisticItem(
+                                                icon = Icons.Default.FilterList,
+                                                label = "Filtrados",
+                                                value = uiState.produtos.size.toString()
+                                            )
+                                        }
+
+                                        // Separador
+                                        Divider(modifier = Modifier.padding(vertical = 8.dp))
+
+                                        // Botão para comunicar falta de materiais
+                                        Button(
+                                            onClick = {
+                                                // Verificar se há produtos selecionados
+                                                if (uiState.produtosSelecionados.isNotEmpty()) {
+                                                    showConfirmEmailDialog = true
+                                                }
+                                            },
+                                            modifier = Modifier.fillMaxWidth(),
+                                            enabled = !uiState.isEmailSending && uiState.produtosSelecionados.isNotEmpty(),
+                                            colors = ButtonDefaults.buttonColors(
+                                                containerColor = MaterialTheme.colorScheme.error,
+                                                contentColor = MaterialTheme.colorScheme.onError
+                                            )
+                                        ) {
+                                            if (uiState.isEmailSending) {
+                                                CircularProgressIndicator(
+                                                    modifier = Modifier.size(20.dp),
+                                                    color = MaterialTheme.colorScheme.onError,
+                                                    strokeWidth = 2.dp
+                                                )
+                                                Spacer(modifier = Modifier.width(8.dp))
+                                                Text("Enviando...")
+                                            } else {
+                                                Icon(
+                                                    Icons.Default.WarningAmber,
+                                                    contentDescription = null,
+                                                    modifier = Modifier.size(20.dp)
+                                                )
+                                                Spacer(modifier = Modifier.width(8.dp))
+                                                Text("Comunicar Falta de Materiais")
+                                            }
+                                        }
                                     }
                                 }
 
@@ -388,13 +441,10 @@ fun SeparacaoMaterialScreen(
                     // Botão principal
                     Button(
                         onClick = {
-                            showLoadingModal = true
-                            viewModel.realizarBaixaSeparacao(
-                                onSuccess = { },
-                                onError = { }
-                            )
+                            // Mostrar diálogo de senha em vez de iniciar a baixa diretamente
+                            viewModel.mostrarDialogSenha()
                         },
-                        enabled = !uiState.isBaixaLoading && !showLoadingModal,
+                        enabled = !uiState.isBaixaLoading && !showLoadingModal && uiState.produtosSelecionados.isNotEmpty(),
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(56.dp),
@@ -481,6 +531,84 @@ fun SeparacaoMaterialScreen(
             }
         )
     }
+
+    EmailSendingDialog(isVisible = uiState.isEmailSending)
+
+    // Lista de produtos selecionados para o diálogo de confirmação do email
+    val produtosSelecionadosParaDialogo = uiState.produtosTodos.filter { produto ->
+        uiState.produtosSelecionados.contains(produto.produto)
+    }
+
+    // Diálogo de confirmação de email
+    ConfirmEmailDialog(
+        isVisible = showConfirmEmailDialog,
+        produtosSelecionados = produtosSelecionadosParaDialogo,
+        onConfirm = {
+            viewModel.enviarEmailFaltaMateriais(context, nomeCliente)
+            showConfirmEmailDialog = false
+        },
+        onDismiss = {
+            showConfirmEmailDialog = false
+        }
+    )
+
+    // Diálogo de sucesso do email
+    if (uiState.emailSuccess) {
+        AlertDialog(
+            onDismissRequest = { viewModel.limparEmailSuccess() },
+            title = { Text("Comunicação Enviada") },
+            text = { Text("A comunicação de falta de materiais foi enviada com sucesso!") },
+            confirmButton = {
+                Button(onClick = { viewModel.limparEmailSuccess() }) {
+                    Text("OK")
+                }
+            }
+        )
+    }
+
+    // Diálogo de erro do email
+    if (uiState.emailError != null) {
+        AlertDialog(
+            onDismissRequest = { viewModel.limparEmailError() },
+            title = { Text("Erro") },
+            text = { Text(uiState.emailError ?: "Ocorreu um erro desconhecido.") },
+            confirmButton = {
+                Button(onClick = { viewModel.limparEmailError() }) {
+                    Text("OK")
+                }
+            }
+        )
+    }
+
+    // Diálogo de validação de senha
+    var senhaDigitada by remember { mutableStateOf("") }
+    ValidacaoSenhaDialogSeparacao(
+        isVisible = uiState.isPasswordDialogVisible,
+        isLoading = uiState.isPasswordLoading,
+        nomeUsuario = uiState.validatedUserName,
+        erro = uiState.passwordError,
+        onSenhaChange = { senhaDigitada = it },
+        onConfirmar = {
+            if (uiState.validatedUserName != null) {
+                // Se já validou a senha, realizar a baixa
+                viewModel.realizarBaixaSeparacao(
+                    onSuccess = {},
+                    onError = {}
+                )
+            } else {
+                // Senão, validar a senha
+                viewModel.validarSenha(senhaDigitada)
+            }
+        },
+        onCancelar = {
+            viewModel.ocultarDialogSenha()
+            senhaDigitada = ""
+        },
+        onDismiss = {
+            viewModel.ocultarDialogSenha()
+            senhaDigitada = ""
+        }
+    )
 }
 
 @Composable
@@ -715,6 +843,328 @@ fun StatisticItem(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+    }
+}
+
+@Composable
+fun ConfirmEmailDialog(
+    isVisible: Boolean,
+    produtosSelecionados: List<ProdutoSeparacao>,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    if (isVisible) {
+        AlertDialog(
+            onDismissRequest = onDismiss,
+            title = { Text("Confirmar Comunicação de Falta") },
+            text = {
+                Column {
+                    Text(
+                        "Você está prestes a enviar um e-mail informando a falta dos seguintes materiais:"
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Lista de produtos selecionados
+                    Column(
+                        modifier = Modifier
+                            .heightIn(max = 200.dp)
+                            .verticalScroll(rememberScrollState())
+                    ) {
+                        produtosSelecionados.forEach { produto ->
+                            Text(
+                                "• ${produto.descricao} (${produto.produto})",
+                                style = MaterialTheme.typography.bodyMedium,
+                                overflow = TextOverflow.Ellipsis,
+                                maxLines = 1
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Text(
+                        "Um e-mail será enviado para os responsáveis. Deseja continuar?",
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = onConfirm,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Text("Confirmar")
+                }
+            },
+            dismissButton = {
+                OutlinedButton(onClick = onDismiss) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
+}
+
+@Composable
+fun EmailSendingDialog(isVisible: Boolean) {
+    if (isVisible) {
+        Dialog(
+            onDismissRequest = { /* Não faz nada, não pode ser dispensado */ },
+            properties = DialogProperties(
+                dismissOnBackPress = false,
+                dismissOnClickOutside = false
+            )
+        ) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth(0.9f)
+                    .wrapContentHeight(),
+                shape = RoundedCornerShape(16.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    // Animação do ícone de e-mail
+                    val infiniteTransition = rememberInfiniteTransition(label = "emailAnimation")
+
+                    val iconRotation by infiniteTransition.animateFloat(
+                        initialValue = -10f,
+                        targetValue = 10f,
+                        animationSpec = infiniteRepeatable(
+                            animation = tween(800, easing = FastOutSlowInEasing),
+                            repeatMode = RepeatMode.Reverse
+                        ),
+                        label = "rotation"
+                    )
+
+                    val iconScale by infiniteTransition.animateFloat(
+                        initialValue = 0.9f,
+                        targetValue = 1.1f,
+                        animationSpec = infiniteRepeatable(
+                            animation = tween(1000),
+                            repeatMode = RepeatMode.Reverse
+                        ),
+                        label = "scale"
+                    )
+
+                    // Animação das linhas de "enviando"
+                    val dotsTransition = rememberInfiniteTransition(label = "dotsAnimation")
+                    val dotsState by dotsTransition.animateFloat(
+                        initialValue = 0f,
+                        targetValue = 1f,
+                        animationSpec = infiniteRepeatable(
+                            animation = tween(1500),
+                            repeatMode = RepeatMode.Restart
+                        ),
+                        label = "dots"
+                    )
+
+                    val dots = when {
+                        dotsState < 0.33f -> "."
+                        dotsState < 0.66f -> ".."
+                        else -> "..."
+                    }
+
+                    // Ícone animado
+                    Box(contentAlignment = Alignment.Center) {
+                        // Círculo de fundo
+                        Box(
+                            modifier = Modifier
+                                .size(80.dp)
+                                .scale(iconScale)
+                                .background(
+                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                    shape = CircleShape
+                                )
+                        )
+
+                        // Ícone de e-mail
+                        Icon(
+                            imageVector = Icons.Default.Email,
+                            contentDescription = null,
+                            modifier = Modifier
+                                .size(40.dp)
+                                .rotate(iconRotation)
+                                .scale(iconScale),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+
+                    // Texto com animação de pontos
+                    Text(
+                        text = "Enviando e-mail$dots",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Medium
+                    )
+
+                    Text(
+                        text = "Por favor, aguarde enquanto enviamos sua comunicação",
+                        style = MaterialTheme.typography.bodyMedium,
+                        textAlign = TextAlign.Center,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    // Indicador de progresso
+                    LinearProgressIndicator(
+                        modifier = Modifier
+                            .fillMaxWidth(0.8f)
+                            .padding(top = 8.dp),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ValidacaoSenhaDialogSeparacao(
+    isVisible: Boolean,
+    isLoading: Boolean = false,
+    nomeUsuario: String? = null,
+    erro: String? = null,
+    onSenhaChange: (String) -> Unit,
+    onConfirmar: () -> Unit,
+    onCancelar: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    var senha by remember { mutableStateOf("") }
+
+    if (isVisible) {
+        Dialog(
+            onDismissRequest = onDismiss,
+            properties = DialogProperties(
+                dismissOnBackPress = !isLoading,
+                dismissOnClickOutside = !isLoading
+            )
+        ) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                shape = RoundedCornerShape(16.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    verticalArrangement = Arrangement.spacedBy(20.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    // Ícone e título
+                    Icon(
+                        Icons.Default.Security,
+                        contentDescription = null,
+                        modifier = Modifier.size(48.dp),
+                        tint = GreenPrimary  // Use a cor verde para diferenciar da tela de entrega
+                    )
+
+                    Text(
+                        text = "Validação de Separação",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center
+                    )
+
+                    // Campo de senha
+                    OutlinedTextField(
+                        value = senha,
+                        onValueChange = {
+                            senha = it
+                            onSenhaChange(it)
+                        },
+                        label = { Text("Digite sua senha") },
+                        leadingIcon = {
+                            Icon(Icons.Default.Lock, contentDescription = null)
+                        },
+                        visualTransformation = PasswordVisualTransformation(),
+                        enabled = !isLoading,
+                        isError = erro != null,
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+
+                    // Erro (se houver)
+                    erro?.let {
+                        Text(
+                            text = it,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+
+                    // Nome do usuário e confirmação (se validado)
+                    nomeUsuario?.let { nome ->
+                        Card(
+                            colors = CardDefaults.cardColors(
+                                containerColor = GreenContainer  // Use a cor verde para diferenciar
+                            ),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(16.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.Person,
+                                    contentDescription = null,
+                                    tint = GreenPrimary  // Cor verde
+                                )
+                                // MENSAGEM PERSONALIZADA
+                                Text(
+                                    text = "Olá $nome, confirma a separação dos produtos?",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Medium,
+                                    textAlign = TextAlign.Center,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            }
+                        }
+                    }
+
+                    // Botões
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = onCancelar,
+                            enabled = !isLoading,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Cancelar")
+                        }
+
+                        Button(
+                            onClick = onConfirmar,
+                            enabled = !isLoading && senha.isNotBlank(),
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = GreenPrimary  // Cor verde para diferenciar
+                            )
+                        ) {
+                            if (isLoading) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(16.dp),
+                                    color = MaterialTheme.colorScheme.onPrimary,
+                                    strokeWidth = 2.dp
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                            }
+                            Text(if (nomeUsuario != null) "Confirmar" else "Validar")
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 

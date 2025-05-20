@@ -38,6 +38,15 @@ android {
     buildFeatures {
         compose = true
     }
+
+    packaging {
+        resources {
+            // Excluir arquivos conflitantes
+            excludes += "/META-INF/{NOTICE.md,LICENSE.md,LICENSE-notice.md,DEPENDENCIES,NOTICE,LICENSE,license.txt,notice.txt}"
+            // OU, para mesclar todos os arquivos META-INF (alternativa)
+            pickFirsts += "META-INF/**"
+        }
+    }
 }
 
 dependencies {
@@ -61,6 +70,8 @@ dependencies {
     implementation("androidx.compose.material3:material3:1.1.2")
     implementation("androidx.compose.material:material-icons-extended:1.5.4")
     implementation("com.airbnb.android:lottie-compose:6.0.0")
+    implementation("com.sun.mail:android-mail:1.6.7")
+    implementation("com.sun.mail:android-activation:1.6.7")
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)

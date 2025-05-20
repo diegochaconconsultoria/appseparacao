@@ -1,9 +1,11 @@
 package com.example.separadorpedidos.presentation.viewmodel
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.separadorpedidos.data.api.NetworkModule
 import com.example.separadorpedidos.data.model.*
+import com.example.separadorpedidos.utils.EmailSender
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -74,6 +76,17 @@ class SeparacaoViewModel : ViewModel() {
             )
 
             try {
+                // Validar que temos um nome de usuário
+                val nomeUsuario = _uiState.value.validatedUserName
+                if (nomeUsuario.isNullOrBlank()) {
+                    _uiState.value = _uiState.value.copy(
+                        isBaixaLoading = false,
+                        baixaError = "Usuário não autenticado"
+                    )
+                    onError("Usuário não autenticado")
+                    return@launch
+                }
+
                 // Buscar os produtos selecionados
                 val produtosSelecionados = _uiState.value.produtosTodos.filter { produto ->
                     _uiState.value.produtosSelecionados.contains(produto.produto)
@@ -91,10 +104,11 @@ class SeparacaoViewModel : ViewModel() {
                     )
                 }
 
-                // Criar request
+                // Criar request com o novo campo usuario
                 val request = BaixaSeparacaoRequest(
                     pedido = _uiState.value.pedido,
-                    produtos = produtosBaixa
+                    produtos = produtosBaixa,
+                    usuario = nomeUsuario  // Adicionar o nome do usuário ao request
                 )
 
                 // Chamar API
@@ -106,6 +120,7 @@ class SeparacaoViewModel : ViewModel() {
                     if (baixaResponse?.success == true) {
                         _uiState.value = _uiState.value.copy(
                             isBaixaLoading = false,
+                            isPasswordDialogVisible = false,  // Fechar o diálogo de senha
                             produtosSelecionados = emptySet(),
                             showBaixaSucesso = true,
                             quantidadeBaixaRealizada = quantidadeProdutos
@@ -133,6 +148,54 @@ class SeparacaoViewModel : ViewModel() {
                     baixaError = "Erro de conexão: ${e.message}"
                 )
                 onError("Erro de conexão: ${e.message}")
+            }
+        }
+    }
+
+    fun limparPasswordError() {
+        _uiState.value = _uiState.value.copy(
+            passwordError = null
+        )
+    }
+
+    fun enviarEmailFaltaMateriais(context: Context, nomeCliente: String) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(
+                isEmailSending = true
+            )
+
+            try {
+                // Obter produtos selecionados
+                val produtosSelecionados = _uiState.value.produtosTodos.filter { produto ->
+                    _uiState.value.produtosSelecionados.contains(produto.produto)
+                }
+
+                if (produtosSelecionados.isEmpty()) {
+                    _uiState.value = _uiState.value.copy(
+                        isEmailSending = false,
+                        emailError = "Selecione pelo menos um produto para comunicar a falta"
+                    )
+                    return@launch
+                }
+
+                // Enviar e-mail
+                val success = EmailSender.sendEmailAboutMissingProducts(
+                    context,
+                    _uiState.value.pedido,
+                    nomeCliente,
+                    produtosSelecionados
+                )
+
+                _uiState.value = _uiState.value.copy(
+                    isEmailSending = false,
+                    emailSuccess = success,
+                    emailError = if (!success) "Falha ao enviar e-mail" else null
+                )
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isEmailSending = false,
+                    emailError = "Erro: ${e.message}"
+                )
             }
         }
     }
@@ -222,7 +285,77 @@ class SeparacaoViewModel : ViewModel() {
     fun limparBaixaSucesso() {
         _uiState.value = _uiState.value.copy(showBaixaSucesso = false)
     }
+
+    fun limparEmailSuccess() {
+        _uiState.value = _uiState.value.copy(
+            emailSuccess = false
+        )
+    }
+
+    fun limparEmailError() {
+        _uiState.value = _uiState.value.copy(
+            emailError = null
+        )
+    }
+
+    fun mostrarDialogSenha() {
+        _uiState.value = _uiState.value.copy(
+            isPasswordDialogVisible = true,
+            passwordError = null,
+            validatedUserName = null
+        )
+    }
+
+    fun ocultarDialogSenha() {
+        _uiState.value = _uiState.value.copy(
+            isPasswordDialogVisible = false,
+            passwordError = null
+        )
+    }
+
+    fun validarSenha(senha: String) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(
+                isPasswordLoading = true,
+                passwordError = null
+            )
+
+            try {
+                val request = ValidacaoSenhaRequest(senha)
+                val response = apiService.validarSenha(request)
+
+                if (response.isSuccessful) {
+                    val validacaoResponse = response.body()
+
+                    if (validacaoResponse?.success == true) {
+                        _uiState.value = _uiState.value.copy(
+                            isPasswordLoading = false,
+                            validatedUserName = validacaoResponse.nome
+                        )
+                    } else {
+                        _uiState.value = _uiState.value.copy(
+                            isPasswordLoading = false,
+                            passwordError = "Senha inválida"
+                        )
+                    }
+                } else {
+                    _uiState.value = _uiState.value.copy(
+                        isPasswordLoading = false,
+                        passwordError = "Erro na validação da senha"
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isPasswordLoading = false,
+                    passwordError = "Erro de conexão: ${e.message}"
+                )
+            }
+        }
+    }
+
 }
+
+
 
 data class SeparacaoUiState(
     val isLoading: Boolean = false,
@@ -238,5 +371,13 @@ data class SeparacaoUiState(
     val isBaixaLoading: Boolean = false,
     val baixaError: String? = null,
     val showBaixaSucesso: Boolean = false,
-    val quantidadeBaixaRealizada: Int = 0
+    val quantidadeBaixaRealizada: Int = 0,
+    // Novos campos para controle de e-mail
+    val isEmailSending: Boolean = false,
+    val emailSuccess: Boolean = false,
+    val emailError: String? = null
+    val isPasswordDialogVisible: Boolean = false,
+    val isPasswordLoading: Boolean = false,
+    val validatedUserName: String? = null,
+    val passwordError: String? = null
 )
