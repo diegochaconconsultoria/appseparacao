@@ -287,7 +287,7 @@ private fun NoImageContentBase64(
         )
 
         Text(
-            text = "Tire uma foto para documentar este produto",
+            text = "Tire uma foto para cadastrar este produto",
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center
@@ -363,7 +363,7 @@ private fun NoImageContentBase64(
                 )
                 Spacer(modifier = Modifier.width(12.dp))
                 Text(
-                    "📷 Tirar Foto",
+                    "📷 Tirar Foto do Produto",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
@@ -574,19 +574,21 @@ private fun uploadImageBase64(
             val base64 = bitmapToBase64(bitmap)
             Log.d("ImageDialog", "Imagem convertida para base64. Tamanho: ${base64.length}")
 
-            // Cria request usando ImageUploadRequest
-            val request = ImageUploadRequest(
-                imageBase64 = base64,
-                extensao = "jpg"
+            // Cria request com a estrutura correta para a nova API
+            val requestBody = mapOf(
+                "codigoProduto" to codigoProduto,
+                "imageBase64" to base64,
+                "extensao" to "jpg"
             )
 
-            Log.d("ImageDialog", "Fazendo upload...")
-            // Faz upload
-            val response = NetworkModule.apiService.uploadProductImage(codigoProduto, request)
+            Log.d("ImageDialog", "Fazendo upload para VKSEPALMUPLOAD...")
+            // Faz upload para a nova API
+            val response = NetworkModule.apiService.uploadProductImageNew(requestBody)
 
             Log.d("ImageDialog", "Upload response - Code: ${response.code()}")
             if (response.isSuccessful) {
-                Log.d("ImageDialog", "Upload bem sucedido")
+                val responseBody = response.body()
+                Log.d("ImageDialog", "Upload bem sucedido: ${responseBody?.message}")
 
                 // Adicionar ao cache após upload bem-sucedido
                 imageCache[codigoProduto] = bitmap

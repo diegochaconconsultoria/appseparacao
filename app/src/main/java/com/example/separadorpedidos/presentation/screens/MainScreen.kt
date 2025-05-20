@@ -21,6 +21,8 @@ import com.example.separadorpedidos.data.model.SetorDisponivel
 import com.example.separadorpedidos.presentation.viewmodel.MainViewModel
 import com.example.separadorpedidos.ui.components.*
 import com.example.separadorpedidos.ui.theme.SeparadorPedidosTheme
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -29,9 +31,23 @@ fun MainScreen(
     viewModel: MainViewModel = viewModel()
 ) {
     var numeroPedido by remember { mutableStateOf("") }
+
+    var voiceError by remember { mutableStateOf<String?>(null) }
+    // Estado para mostrar o snackbar
+    val snackbarHostState = remember { SnackbarHostState() }
     val uiState by viewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
 
+    // Efeito para mostrar snackbar em caso de erro
+    LaunchedEffect(voiceError) {
+        voiceError?.let {
+            snackbarHostState.showSnackbar(
+                message = it,
+                duration = SnackbarDuration.Short
+            )
+            voiceError = null
+        }
+    }
 
     // Observar quando o pedido for encontrado
     LaunchedEffect(uiState.pedidoEncontrado) {
@@ -103,17 +119,47 @@ fun MainScreen(
                         // Campo de busca moderno
                         ModernSearchField(
                             value = numeroPedido,
-                            onValueChange = { numeroPedido = it },
+                            onValueChange = {
+                                // Aceitar apenas dígitos
+                                if (it.all { char -> char.isDigit() } || it.isEmpty()) {
+                                    numeroPedido = it
+                                }
+                            },
                             placeholder = "Digite o número do pedido",
                             enabled = !uiState.isLoading,
+                            keyboardType = KeyboardType.Number,
                             leadingIcon = {
                                 Icon(
                                     Icons.Default.Search,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
+                            },
+                            trailingIcon = {
+                                // Aqui adicionamos o botão de reconhecimento de voz
+                                VoiceSearchButton(
+                                    onVoiceResult = { result ->
+                                        numeroPedido = result
+                                        // Opcionalmente, buscar automaticamente após reconhecimento
+                                        viewModel.buscarPedido(result)
+                                    },
+                                    onError = { error ->
+                                        voiceError = error
+                                    }
+                                )
                             }
                         )
+
+                        Box(modifier = Modifier.fillMaxSize()) {
+                            // Conteúdo existente...
+
+                            SnackbarHost(
+                                hostState = snackbarHostState,
+                                modifier = Modifier
+                                    .align(Alignment.BottomCenter)
+                                    .padding(16.dp)
+                            )
+                        }
 
                         // Botão de busca moderno
                         ModernButton(

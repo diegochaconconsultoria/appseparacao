@@ -13,10 +13,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.separadorpedidos.ui.components.*
 import com.example.separadorpedidos.ui.theme.SeparadorPedidosTheme
+import com.airbnb.lottie.compose.LottieAnimation
+import com.airbnb.lottie.compose.LottieCompositionSpec
+import com.airbnb.lottie.compose.LottieConstants
+import com.airbnb.lottie.compose.rememberLottieComposition
+import com.example.separadorpedidos.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -30,10 +36,15 @@ fun StatusSeparacaoScreen(
 ) {
     val scrollState = rememberScrollState()
 
+    // Carregar a composição da animação Lottie
+    val composition by rememberLottieComposition(
+        LottieCompositionSpec.RawRes(R.raw.working_animation)
+    )
+
     Column(
         modifier = Modifier.fillMaxSize()
     ) {
-        // App Bar
+        // App Bar com número do pedido maior
         TopAppBar(
             title = {
                 Column {
@@ -41,11 +52,22 @@ fun StatusSeparacaoScreen(
                         "Status da Separação",
                         fontWeight = FontWeight.Bold
                     )
-                    Text(
-                        text = "Pedido: $numeroPedido",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            text = "Pedido:",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.9f)
+                        )
+                        Text(
+                            text = numeroPedido,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                    }
                 }
             },
             navigationIcon = {
@@ -71,12 +93,13 @@ fun StatusSeparacaoScreen(
                     .padding(24.dp),
                 verticalArrangement = Arrangement.spacedBy(24.dp)
             ) {
-                // Card do cliente
+                // Card do cliente (código existente)
                 AnimatedCard(
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.secondaryContainer
                     )
                 ) {
+                    // Conteúdo existente...
                     Row(
                         modifier = Modifier.padding(20.dp),
                         verticalAlignment = Alignment.CenterVertically,
@@ -104,7 +127,7 @@ fun StatusSeparacaoScreen(
                     }
                 }
 
-                // Cards de ação maiores e mais atrativos
+                // Cards de ação (código existente)
                 Column(
                     verticalArrangement = Arrangement.spacedBy(20.dp)
                 ) {
@@ -124,8 +147,8 @@ fun StatusSeparacaoScreen(
                         description = "Confirmar entrega dos materiais com validação de senha",
                         icon = Icons.Default.LocalShipping,
                         onClick = onRegistrarEntregaClick,
-                        backgroundColor = Color(0xFF2196F3), // Azul em vez de tertiary
-                        iconColor = Color(0xFF2196F3) // Azul em vez de tertiary
+                        backgroundColor = Color(0xFF2196F3),
+                        iconColor = Color(0xFF2196F3)
                     )
 
                     // Visualizar Histórico
@@ -139,10 +162,35 @@ fun StatusSeparacaoScreen(
                         isPrimary = false
                     )
                 }
+
+                // Nova seção com animação de trabalhador
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp, bottom = 10.dp),  // Aumentei o padding inferior
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        // Animação Lottie
+                        LottieAnimation(
+                            composition = composition,
+                            modifier = Modifier
+                                .size(700.dp)  // Aumentado de 220dp para 280dp
+                                .padding(2.dp),
+                            iterations = LottieConstants.IterateForever, // Loop infinito
+                            isPlaying = true
+                        )
+
+                    }
+                }
             }
         }
     }
 }
+
 
 @Composable
 fun LargeActionCard(
@@ -255,8 +303,6 @@ fun LargeActionCard(
         }
     }
 }
-
-// As funções ProgressItem e ActionCard antigas podem ser removidas se não utilizadas
 
 @Preview(showBackground = true)
 @Composable

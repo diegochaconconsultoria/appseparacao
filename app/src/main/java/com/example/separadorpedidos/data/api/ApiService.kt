@@ -37,4 +37,17 @@ interface ApiService {
         @Path("codigoProduto") codigoProduto: String,
         @Body request: ImageUploadRequest
     ): Response<ImageResponse>
+
+    @POST("VKSEPALMUPLOAD")
+    suspend fun uploadProductImageNew(@Body request: Map<String, String>): Response<UploadImageResponse>
+
+    data class UploadImageResponse(
+        val status: String,
+        val message: String,
+        val path: String? = null
+    )
+
+    // Adicione ao ApiService.kt
+    @POST("VKSEPALMHIST")
+    suspend fun obterHistoricoPedido(@Body request: HistoricoRequest): Response<HistoricoResponse>
 }

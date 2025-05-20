@@ -35,3 +35,11 @@ data class ImageNotFoundResponse(
     @SerializedName("canUpload")
     val canUpload: Boolean
 )
+
+data class UploadImageResponse(
+    @SerializedName("status")
+    val status: String,
+    @SerializedName("message")
+    val message: String
+    // Campo path removido conforme a nova especificação
+)

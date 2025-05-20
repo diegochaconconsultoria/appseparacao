@@ -26,6 +26,10 @@ sealed class Screen {
         val nomeCliente: String,
         val setoresSelecionados: Set<String>
     ) : Screen()
+    data class HistoricoPedido(
+        val numeroPedido: String,
+        val nomeCliente: String
+    ) : Screen()
 }
 
 @OptIn(ExperimentalAnimationApi::class)
@@ -48,6 +52,7 @@ fun AppNavigation() {
         "StatusSeparacao" -> Screen.StatusSeparacao(numeroPedido, nomeCliente)
         "SeparacaoMaterial" -> Screen.SeparacaoMaterial(numeroPedido, nomeCliente, setoresSelecionados)
         "RegistrarEntrega" -> Screen.RegistrarEntrega(numeroPedido, nomeCliente, setoresSelecionados)
+        "HistoricoPedido" -> Screen.HistoricoPedido(numeroPedido, nomeCliente)
         else -> Screen.Splash
     }
 
@@ -129,7 +134,7 @@ fun AppNavigation() {
                         screenType = "RegistrarEntrega"
                     },
                     onVisualizarHistoricoClick = {
-                        // TODO: Implementar tela de histórico
+                        screenType = "HistoricoPedido"
                     }
                 )
             }
@@ -158,6 +163,16 @@ fun AppNavigation() {
                     },
                     onRealizarEntregaClick = { produtosSelecionados ->
                         // A ação é tratada internamente no ViewModel
+                    }
+                )
+            }
+
+            is Screen.HistoricoPedido -> {
+                HistoricoScreen(
+                    numeroPedido = screen.numeroPedido,
+                    nomeCliente = screen.nomeCliente,
+                    onVoltarClick = {
+                        screenType = "StatusSeparacao"
                     }
                 )
             }
