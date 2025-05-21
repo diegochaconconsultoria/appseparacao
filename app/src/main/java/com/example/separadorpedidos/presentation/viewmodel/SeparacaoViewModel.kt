@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import android.util.Log
 
 class SeparacaoViewModel : ViewModel() {
 
@@ -161,37 +162,101 @@ class SeparacaoViewModel : ViewModel() {
     fun enviarEmailFaltaMateriais(context: Context, nomeCliente: String) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(
-                isEmailSending = true
+                isEmailSending = true,
+                mostrandoAjusteQuantidades = false  // Fechar o diálogo de ajuste
             )
 
             try {
                 // Obter produtos selecionados
-                val produtosSelecionados = _uiState.value.produtosTodos.filter { produto ->
-                    _uiState.value.produtosSelecionados.contains(produto.produto)
-                }
+                val produtosSelecionados = _uiState.value.produtosTodos
+                    .filter { produto -> _uiState.value.produtosSelecionados.contains(produto.produto) }
+                    .map { produto ->
+                        // Criar uma cópia do produto com a quantidade ajustada
+                        val quantidadeAjustada = _uiState.value.produtosQuantidadesFaltantes[produto.produto] ?: produto.qtdaSeparar
 
-                if (produtosSelecionados.isEmpty()) {
-                    _uiState.value = _uiState.value.copy(
-                        isEmailSending = false,
-                        emailError = "Selecione pelo menos um produto para comunicar a falta"
-                    )
-                    return@launch
-                }
+                        // Criar um novo objeto com a quantidade ajustada
+                        // Como ProdutoSeparacao é uma data class, não podemos modificar diretamente
+                        produto.copy(qtdaSeparar = quantidadeAjustada)
+                    }
 
                 // Enviar e-mail
-                val success = EmailSender.sendEmailAboutMissingProducts(
+                val emailSuccess = EmailSender.sendEmailAboutMissingProducts(
                     context,
                     _uiState.value.pedido,
                     nomeCliente,
                     produtosSelecionados
                 )
 
-                _uiState.value = _uiState.value.copy(
-                    isEmailSending = false,
-                    emailSuccess = success,
-                    emailError = if (!success) "Falha ao enviar e-mail" else null
-                )
+                if (emailSuccess) {
+                    // Se o e-mail foi enviado com sucesso, comunicar a pendência via API
+                    try {
+                        // Criar lista de produtos para baixa
+                        val produtosBaixa = produtosSelecionados.map { produto ->
+                            ProdutoBaixa(
+                                codigo = produto.produto,
+                                setor = produto.setor,
+                                um = produto.um
+                            )
+                        }
+
+                        // Criar request com um nome de usuário padrão (sistema)
+                        val request = BaixaSeparacaoRequest(
+                            pedido = _uiState.value.pedido,
+                            produtos = produtosBaixa,
+                            usuario = "SISTEMA" // Identificar como comunicação de sistema
+                        )
+
+                        // Chamar API para comunicar pendência
+                        val response = apiService.comunicarPendenciaMateriais(request)
+
+                        if (response.isSuccessful) {
+                            val pendenciaResponse = response.body()
+
+                            Log.d("SeparacaoViewModel", "Resposta da API VKSEPALMPEND: ${pendenciaResponse?.success}")
+
+                            _uiState.value = _uiState.value.copy(
+                                isEmailSending = false,
+                                emailSuccess = true,
+                                emailError = null,
+                                // Limpar seleção de produtos
+                                produtosSelecionados = emptySet()
+                            )
+
+                            // Recarregar a lista de produtos para refletir as alterações
+                            val pedidoAtual = _uiState.value.pedido
+                            val setoresAtuais = _uiState.value.setoresSelecionados
+
+                            if (pedidoAtual.isNotBlank() && setoresAtuais.isNotEmpty()) {
+                                // Recarregar produtos usando a função existente
+                                buscarProdutosSeparacao(pedidoAtual, setoresAtuais)
+                            }
+                        } else {
+                            // API respondeu com erro, mas o e-mail foi enviado
+                            _uiState.value = _uiState.value.copy(
+                                isEmailSending = false,
+                                emailSuccess = true,
+                                emailError = "E-mail enviado, mas houve erro ao comunicar pendência: ${response.code()}"
+                            )
+                        }
+                    } catch (e: Exception) {
+                        // Erro ao comunicar pendência, mas o e-mail foi enviado
+                        Log.e("SeparacaoViewModel", "Erro ao comunicar pendência", e)
+                        _uiState.value = _uiState.value.copy(
+                            isEmailSending = false,
+                            emailSuccess = true,
+                            emailError = "E-mail enviado, mas houve erro ao comunicar pendência: ${e.message}"
+                        )
+                    }
+                } else {
+                    // Falha no envio do e-mail
+                    _uiState.value = _uiState.value.copy(
+                        isEmailSending = false,
+                        emailSuccess = false,
+                        emailError = "Falha ao enviar e-mail"
+                    )
+                }
             } catch (e: Exception) {
+                // Erro geral no processo
                 _uiState.value = _uiState.value.copy(
                     isEmailSending = false,
                     emailError = "Erro: ${e.message}"
@@ -274,6 +339,41 @@ class SeparacaoViewModel : ViewModel() {
         )
     }
 
+    fun selecionarTodosProdutos() {
+        // Obter todos os códigos de produtos que podem ser selecionados
+        val produtosSelecionaveis = _uiState.value.produtos
+            .filter { it.podeSelecionar() }
+            .map { it.produto }
+            .toSet()
+
+        _uiState.value = _uiState.value.copy(
+            produtosSelecionados = produtosSelecionaveis
+        )
+    }
+
+    fun desselecionarTodosProdutos() {
+        _uiState.value = _uiState.value.copy(
+            produtosSelecionados = emptySet()
+        )
+    }
+
+    fun toggleSelecionarTodos() {
+        // Se já temos todos selecionados, desseleciona todos
+        val produtosSelecionaveis = _uiState.value.produtos
+            .filter { it.podeSelecionar() }
+            .map { it.produto }
+            .toSet()
+
+        if (_uiState.value.produtosSelecionados.size == produtosSelecionaveis.size &&
+            _uiState.value.produtosSelecionados.containsAll(produtosSelecionaveis)) {
+            // Todos já estão selecionados, então desseleciona todos
+            desselecionarTodosProdutos()
+        } else {
+            // Nem todos estão selecionados, então seleciona todos
+            selecionarTodosProdutos()
+        }
+    }
+
     fun limparState() {
         _uiState.value = SeparacaoUiState()
     }
@@ -328,10 +428,20 @@ class SeparacaoViewModel : ViewModel() {
                     val validacaoResponse = response.body()
 
                     if (validacaoResponse?.success == true) {
-                        _uiState.value = _uiState.value.copy(
-                            isPasswordLoading = false,
-                            validatedUserName = validacaoResponse.nome
-                        )
+                        // Verificar se o usuário tem permissão para realizar baixa
+                        if (validacaoResponse.realizaBaixa == "Sim") {
+                            _uiState.value = _uiState.value.copy(
+                                isPasswordLoading = false,
+                                validatedUserName = validacaoResponse.nome
+                            )
+                        } else {
+                            // Usuário sem permissão para realizar baixa
+                            _uiState.value = _uiState.value.copy(
+                                isPasswordLoading = false,
+                                passwordError = "Usuário sem permissão para realizar a baixa do material",
+                                validatedUserName = null
+                            )
+                        }
                     } else {
                         _uiState.value = _uiState.value.copy(
                             isPasswordLoading = false,
@@ -352,6 +462,34 @@ class SeparacaoViewModel : ViewModel() {
             }
         }
     }
+
+    fun iniciarAjusteQuantidades() {
+        // Inicializar mapa de quantidades com valores padrão (a quantidade a separar)
+        val quantidadesIniciais = _uiState.value.produtosTodos
+            .filter { produto -> _uiState.value.produtosSelecionados.contains(produto.produto) }
+            .associate { produto -> produto.produto to produto.qtdaSeparar }
+
+        _uiState.value = _uiState.value.copy(
+            produtosQuantidadesFaltantes = quantidadesIniciais,
+            mostrandoAjusteQuantidades = true
+        )
+    }
+
+    fun atualizarQuantidadeFaltante(codigoProduto: String, quantidade: Double) {
+        val novasQuantidades = _uiState.value.produtosQuantidadesFaltantes.toMutableMap()
+        novasQuantidades[codigoProduto] = quantidade
+
+        _uiState.value = _uiState.value.copy(
+            produtosQuantidadesFaltantes = novasQuantidades
+        )
+    }
+
+    fun fecharAjusteQuantidades() {
+        _uiState.value = _uiState.value.copy(
+            mostrandoAjusteQuantidades = false
+        )
+    }
+
 
 }
 
@@ -375,9 +513,11 @@ data class SeparacaoUiState(
     // Novos campos para controle de e-mail
     val isEmailSending: Boolean = false,
     val emailSuccess: Boolean = false,
-    val emailError: String? = null
+    val emailError: String? = null,
     val isPasswordDialogVisible: Boolean = false,
     val isPasswordLoading: Boolean = false,
     val validatedUserName: String? = null,
-    val passwordError: String? = null
+    val passwordError: String? = null,
+    val produtosQuantidadesFaltantes: Map<String, Double> = emptyMap(),
+    val mostrandoAjusteQuantidades: Boolean = false
 )

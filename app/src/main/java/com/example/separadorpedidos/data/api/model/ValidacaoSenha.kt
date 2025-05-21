@@ -10,5 +10,7 @@ data class ValidacaoSenhaResponse(
     @SerializedName("sucess") // Note que é "sucess" não "success" (igual no retorno da API)
     val success: Boolean,
     @SerializedName("nome")
-    val nome: String? = null
+    val nome: String? = null,
+    @SerializedName("realizabaixa")
+    val realizaBaixa: String? = null
 )

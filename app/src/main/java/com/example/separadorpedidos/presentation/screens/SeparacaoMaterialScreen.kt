@@ -36,6 +36,13 @@ import com.example.separadorpedidos.ui.theme.SeparadorPedidosTheme
 // Adicione estas importações no topo do arquivo:
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.input.KeyboardType
+
+
 
 // Cores para tema de separação
 val GreenPrimary = Color(0xFF4CAF50)
@@ -250,11 +257,24 @@ fun SeparacaoMaterialScreen(
                                                 .padding(bottom = 8.dp),
                                             horizontalArrangement = Arrangement.SpaceEvenly
                                         ) {
-                                            StatisticItem(
+                                            // Item "Total" modificado para ser clicável
+                                            val produtosSelecionaveis = uiState.produtos
+                                                .filter { it.podeSelecionar() }
+                                                .map { it.produto }
+                                                .toSet()
+
+                                            val todosSelecionados = uiState.produtosSelecionados.size == produtosSelecionaveis.size &&
+                                                    uiState.produtosSelecionados.containsAll(produtosSelecionaveis)
+
+                                            // StatisticItem clicável para Total
+                                            ClickableStatisticItem(
                                                 icon = Icons.Default.Inventory,
-                                                label = "Total",
-                                                value = uiState.produtosTodos.size.toString()
+                                                label = "Total" + (if (todosSelecionados) " (Desmarcar)" else " (Marcar)"),
+                                                value = uiState.produtosTodos.size.toString(),
+                                                onClick = { viewModel.toggleSelecionarTodos() }
                                             )
+
+                                            // Outros StatisticItems normais
                                             StatisticItem(
                                                 icon = Icons.Default.CheckCircle,
                                                 label = "Selecionados",
@@ -363,6 +383,55 @@ fun SeparacaoMaterialScreen(
                                     }
                                 }
                             }
+
+                            // Botão de Selecionar Todos (novo componente)
+                            /*if (uiState.produtos.isNotEmpty()) {
+                                AnimatedCard {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(16.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        // Verificar se todos os produtos selecionáveis estão selecionados
+                                        val produtosSelecionaveis = uiState.produtos
+                                            .filter { it.podeSelecionar() }
+                                            .map { it.produto }
+                                            .toSet()
+
+                                        val todosSelecionados = uiState.produtosSelecionados.size == produtosSelecionaveis.size &&
+                                                uiState.produtosSelecionados.containsAll(produtosSelecionaveis)
+
+                                        val numSelecionados = uiState.produtosSelecionados.size
+                                        val numSelecionaveis = produtosSelecionaveis.size
+
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            Checkbox(
+                                                checked = todosSelecionados,
+                                                onCheckedChange = { viewModel.toggleSelecionarTodos() },
+                                                enabled = produtosSelecionaveis.isNotEmpty()
+                                            )
+
+                                            Text(
+                                                text = if (todosSelecionados) "Desmarcar Todos" else "Marcar Todos",
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                fontWeight = FontWeight.Medium
+                                            )
+                                        }
+
+                                        // Contador de seleção
+                                        Text(
+                                            text = "$numSelecionados de $numSelecionaveis selecionados",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+                            }*/
 
                             // Lista de produtos
                             LazyColumn(
@@ -846,6 +915,279 @@ fun StatisticItem(
     }
 }
 
+// Adicione esta função ao arquivo para criar um item de estatística clicável
+@Composable
+fun ClickableStatisticItem(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    value: String,
+    onClick: () -> Unit
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier
+            .clickable(onClick = onClick)
+            .padding(4.dp)  // Padding para aumentar a área clicável
+    ) {
+        Icon(
+            icon,
+            contentDescription = null,
+            modifier = Modifier.size(24.dp),
+            tint = MaterialTheme.colorScheme.primary
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center
+        )
+    }
+}
+
+
+@Composable
+fun AjusteQuantidadesDialog(
+    isVisible: Boolean,
+    produtos: List<ProdutoSeparacao>,
+    quantidadesFaltantes: Map<String, Double>,
+    onQuantidadeChanged: (String, Double) -> Unit,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    if (isVisible) {
+        Dialog(
+            onDismissRequest = onDismiss,
+            properties = DialogProperties(
+                dismissOnBackPress = true,
+                dismissOnClickOutside = true,
+                usePlatformDefaultWidth = false
+            )
+        ) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth(0.95f)
+                    .fillMaxHeight(0.9f),
+                shape = RoundedCornerShape(16.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    // Cabeçalho
+                    TopAppBar(
+                        title = {
+                            Text(
+                                "Ajustar Quantidades Faltantes",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold
+                            )
+                        },
+                        navigationIcon = {
+                            IconButton(onClick = onDismiss) {
+                                Icon(Icons.Default.Close, contentDescription = "Fechar")
+                            }
+                        },
+                        colors = TopAppBarDefaults.topAppBarColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                            titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    )
+
+                    // Texto explicativo
+                    Text(
+                        text = "Ajuste a quantidade faltante para cada produto antes de enviar a comunicação.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(16.dp)
+                    )
+
+                    // Lista de produtos com controles de ajuste de quantidade
+                    LazyColumn(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(horizontal = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(produtos) { produto ->
+                            ProdutoQuantidadeAjusteItem(
+                                produto = produto,
+                                quantidadeAtual = quantidadesFaltantes[produto.produto] ?: produto.qtdaSeparar,
+                                onQuantidadeChanged = { novaQuantidade ->
+                                    onQuantidadeChanged(produto.produto, novaQuantidade)
+                                }
+                            )
+                        }
+                    }
+
+                    // Botões de ação
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = onDismiss,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Cancelar")
+                        }
+
+                        Button(
+                            onClick = onConfirm,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(Icons.Default.Send, contentDescription = null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Enviar Comunicação")
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ProdutoQuantidadeAjusteItem(
+    produto: ProdutoSeparacao,
+    quantidadeAtual: Double,
+    onQuantidadeChanged: (Double) -> Unit
+) {
+    var quantidadeText by remember { mutableStateOf(formatQuantity(quantidadeAtual)) }
+    var isError by remember { mutableStateOf(false) }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            // Informações do produto
+            Text(
+                text = produto.descricao,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+
+            Text(
+                text = "Código: ${produto.produto}",
+                style = MaterialTheme.typography.bodySmall
+            )
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = "Quantidade Original:",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+
+                Text(
+                    text = produto.getQtdOriginalFormatted(),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+
+            // Controle de quantidade
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "Quantidade Faltante:",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    // Botão de decremento
+                    IconButton(
+                        onClick = {
+                            val valor = try {
+                                val atual = quantidadeText.replace(",", ".").toDoubleOrNull() ?: quantidadeAtual
+                                if (atual > 1.0) atual - 1.0 else 1.0
+                            } catch (e: Exception) {
+                                1.0
+                            }
+                            quantidadeText = formatQuantity(valor)
+                            onQuantidadeChanged(valor)
+                            isError = false
+                        },
+                        modifier = Modifier.size(40.dp)
+                    ) {
+                        Icon(Icons.Default.Remove, contentDescription = "Diminuir")
+                    }
+
+                    // Campo de entrada
+                    OutlinedTextField(
+                        value = quantidadeText,
+                        onValueChange = { newValue ->
+                            quantidadeText = newValue
+                            try {
+                                val valor = newValue.replace(",", ".").toDoubleOrNull()
+                                if (valor != null && valor > 0) {
+                                    onQuantidadeChanged(valor)
+                                    isError = false
+                                } else {
+                                    isError = true
+                                }
+                            } catch (e: Exception) {
+                                isError = true
+                            }
+                        },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true,
+                        isError = isError,
+                        modifier = Modifier.width(100.dp),
+                        textStyle = TextStyle(textAlign = TextAlign.Center)
+                    )
+
+                    // Botão de incremento
+                    IconButton(
+                        onClick = {
+                            val valor = try {
+                                val atual = quantidadeText.replace(",", ".").toDoubleOrNull() ?: quantidadeAtual
+                                atual + 1.0
+                            } catch (e: Exception) {
+                                quantidadeAtual + 1.0
+                            }
+                            quantidadeText = formatQuantity(valor)
+                            onQuantidadeChanged(valor)
+                            isError = false
+                        },
+                        modifier = Modifier.size(40.dp)
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = "Aumentar")
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Função auxiliar para formatar números
+private fun formatQuantity(value: Double): String {
+    return if (value == value.toInt().toDouble()) {
+        value.toInt().toString()
+    } else {
+        String.format("%.2f", value).replace(",0{1,2}$".toRegex(), "")
+    }
+}
+
 @Composable
 fun ConfirmEmailDialog(
     isVisible: Boolean,
@@ -1036,6 +1378,14 @@ fun ValidacaoSenhaDialogSeparacao(
     onDismiss: () -> Unit
 ) {
     var senha by remember { mutableStateOf("") }
+
+    // Efeito para limpar a senha quando ocorre um erro
+    LaunchedEffect(erro) {
+        if (erro != null && erro.contains("sem permissão")) {
+            senha = ""
+            onSenhaChange("")
+        }
+    }
 
     if (isVisible) {
         Dialog(

@@ -31,6 +31,7 @@ import com.example.separadorpedidos.data.model.ProdutoEntrega
 import com.example.separadorpedidos.presentation.viewmodel.EntregaViewModel
 import com.example.separadorpedidos.ui.components.*
 import com.example.separadorpedidos.ui.theme.SeparadorPedidosTheme
+import androidx.compose.foundation.clickable
 
 // Cores azuis customizadas para a tela de entrega
 val BlueContainer = Color(0xFFE3F2FD)
@@ -549,11 +550,24 @@ fun EntregaScreen(
                                             .padding(20.dp),
                                         horizontalArrangement = Arrangement.SpaceEvenly
                                     ) {
-                                        EntregaStatisticItem(
+                                        // Item "Total" modificado para ser clicável
+                                        val produtosSelecionaveis = uiState.produtos
+                                            .filter { it.podeEntregar() }
+                                            .map { it.produto }
+                                            .toSet()
+
+                                        val todosSelecionados = uiState.produtosSelecionados.size == produtosSelecionaveis.size &&
+                                                uiState.produtosSelecionados.containsAll(produtosSelecionaveis)
+
+                                        // EntregaStatisticItem clicável para Total
+                                        ClickableEntregaStatisticItem(
                                             icon = Icons.Default.Inventory,
-                                            label = "Total",
-                                            value = uiState.produtos.size.toString()
+                                            label = "Total" + (if (todosSelecionados) " (Desmarcar)" else " (Marcar)"),
+                                            value = uiState.produtos.size.toString(),
+                                            onClick = { viewModel.toggleSelecionarTodos() }
                                         )
+
+                                        // Outros EntregaStatisticItems normais
                                         EntregaStatisticItem(
                                             icon = Icons.Default.CheckCircle,
                                             label = "Selecionados",
@@ -572,6 +586,55 @@ fun EntregaScreen(
                                     }
                                 }
                             }
+
+                            // Botão de Selecionar Todos (novo componente)
+                            /*if (uiState.produtos.isNotEmpty()) {
+                                AnimatedCard {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(16.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        // Verificar se todos os produtos que podem ser entregues estão selecionados
+                                        val produtosSelecionaveis = uiState.produtos
+                                            .filter { it.podeEntregar() }
+                                            .map { it.produto }
+                                            .toSet()
+
+                                        val todosSelecionados = uiState.produtosSelecionados.size == produtosSelecionaveis.size &&
+                                                uiState.produtosSelecionados.containsAll(produtosSelecionaveis)
+
+                                        val numSelecionados = uiState.produtosSelecionados.size
+                                        val numSelecionaveis = produtosSelecionaveis.size
+
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            Checkbox(
+                                                checked = todosSelecionados,
+                                                onCheckedChange = { viewModel.toggleSelecionarTodos() },
+                                                enabled = produtosSelecionaveis.isNotEmpty()
+                                            )
+
+                                            Text(
+                                                text = if (todosSelecionados) "Desmarcar Todos" else "Marcar Todos",
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                fontWeight = FontWeight.Medium
+                                            )
+                                        }
+
+                                        // Contador de seleção
+                                        Text(
+                                            text = "$numSelecionados de $numSelecionaveis selecionados",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+                            }*/
 
                             // Lista de produtos
                             LazyColumn(
@@ -785,6 +848,42 @@ fun EntregaStatisticItem(
             text = label,
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+// Adicione esta função ao arquivo para criar um item de estatística clicável na tela de Entrega
+@Composable
+fun ClickableEntregaStatisticItem(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    value: String,
+    onClick: () -> Unit
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier
+            .clickable(onClick = onClick)
+            .padding(4.dp)  // Padding para aumentar a área clicável
+    ) {
+        Icon(
+            icon,
+            contentDescription = null,
+            modifier = Modifier.size(24.dp),
+            tint = BluePrimary // Cor azul para a tela de Entrega
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            color = BluePrimary // Cor azul para a tela de Entrega
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center
         )
     }
 }

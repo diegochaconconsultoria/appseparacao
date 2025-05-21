@@ -90,16 +90,16 @@ fun StatusSeparacaoScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(scrollState)
-                    .padding(24.dp),
-                verticalArrangement = Arrangement.spacedBy(24.dp)
+                    .padding(horizontal = 24.dp, vertical = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp) // Espaçamento reduzido
             ) {
-                // Card do cliente (código existente)
+                // Card do cliente
                 AnimatedCard(
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.secondaryContainer
                     )
                 ) {
-                    // Conteúdo existente...
+                    // Conteúdo existente do card do cliente...
                     Row(
                         modifier = Modifier.padding(20.dp),
                         verticalAlignment = Alignment.CenterVertically,
@@ -127,9 +127,9 @@ fun StatusSeparacaoScreen(
                     }
                 }
 
-                // Cards de ação (código existente)
+                // Cards de ação em uma única coluna sem padding adicional
                 Column(
-                    verticalArrangement = Arrangement.spacedBy(20.dp)
+                    verticalArrangement = Arrangement.spacedBy(10.dp) // Espaçamento reduzido
                 ) {
                     // Separar Material
                     LargeActionCard(
@@ -163,35 +163,30 @@ fun StatusSeparacaoScreen(
                     )
                 }
 
-                // Nova seção com animação de trabalhador
+                // Adicionar um margin negativo para subir a animação
+                Spacer(modifier = Modifier.height((-50).dp))
+
+                // Animação Lottie grande, com posicionamento ajustado para subir
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 10.dp, bottom = 10.dp),  // Aumentei o padding inferior
+                        .heightIn(min = 350.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        // Animação Lottie
-                        LottieAnimation(
-                            composition = composition,
-                            modifier = Modifier
-                                .size(700.dp)  // Aumentado de 220dp para 280dp
-                                .padding(2.dp),
-                            iterations = LottieConstants.IterateForever, // Loop infinito
-                            isPlaying = true
-                        )
-
-                    }
+                    LottieAnimation(
+                        composition = composition,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .size(750.dp)
+                            .offset(y = (-80).dp), // Deslocamento maior para cima
+                        iterations = LottieConstants.IterateForever,
+                        isPlaying = true
+                    )
                 }
             }
         }
     }
 }
-
-
 @Composable
 fun LargeActionCard(
     title: String,

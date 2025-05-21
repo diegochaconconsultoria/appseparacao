@@ -1,8 +1,12 @@
+// Arquivo: app/src/main/java/com/example/separadorpedidos/ui/theme/components/ProductImageDialogBase64.kt
+
 package com.example.separadorpedidos.ui.components
 
 import android.Manifest
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.net.Uri
+import android.os.Environment
 import android.util.Base64
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -19,18 +23,22 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.core.content.FileProvider
 import com.example.separadorpedidos.data.api.NetworkModule
-import com.example.separadorpedidos.data.model.ImageUploadRequest
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
+import java.io.File
+import java.text.SimpleDateFormat
+import java.util.*
 
 // Cache de imagens para evitar recarregamentos desnecessários
 private val imageCache = mutableMapOf<String, Bitmap>()
@@ -47,36 +55,125 @@ fun ProductImageDialogBase64(
     var uploadError by remember { mutableStateOf<String?>(null) }
     var showPermissionDialog by remember { mutableStateOf(false) }
     var debugInfo by remember { mutableStateOf("") }
+    val context = LocalContext.current
 
-    // Launcher para captura de foto
-    val photoLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.TakePicturePreview()
-    ) { bitmap: Bitmap? ->
-        bitmap?.let {
-            isUploading = true
-            uploadError = null
-            debugInfo = "Iniciando upload..."
-            uploadImageBase64(codigoProduto, it) { success, error ->
-                debugInfo = if (success) "Upload concluído!" else "Erro no upload: $error"
-                if (success) {
-                    // Recarrega a imagem após upload
-                    loadImageBase64(codigoProduto) { newState ->
-                        imageStateBase64 = newState
+    // Função para criar um arquivo de imagem temporário
+    val createImageFile = {
+        val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+        val imageFileName = "JPEG_${timeStamp}_"
+        val storageDir = context.getExternalFilesDir(Environment.DIRECTORY_PICTURES)
+        File.createTempFile(
+            imageFileName,
+            ".jpg",
+            storageDir
+        )
+    }
+
+    // URI para a imagem capturada - Usando mutableStateOf simples em vez de remember
+    var photoUriState = remember { mutableStateOf<Uri?>(null) }
+
+    // Funções para processamento de imagem
+    val processImage: (Bitmap) -> Bitmap = { originalBitmap ->
+        // Calcular o novo tamanho mantendo a proporção
+        val maxDimension = 1800 // Dimensão máxima para um bom equilíbrio qualidade/tamanho
+        val originalWidth = originalBitmap.width
+        val originalHeight = originalBitmap.height
+
+        var newWidth: Int
+        var newHeight: Int
+
+        if (originalWidth > originalHeight) {
+            newWidth = maxDimension
+            newHeight = (originalHeight.toFloat() / originalWidth.toFloat() * maxDimension).toInt()
+        } else {
+            newHeight = maxDimension
+            newWidth = (originalWidth.toFloat() / originalHeight.toFloat() * maxDimension).toInt()
+        }
+
+        // Redimensionar para o novo tamanho
+        val resizedBitmap = Bitmap.createScaledBitmap(originalBitmap, newWidth, newHeight, true)
+
+        // Se o bitmap original é muito grande, recicle-o para liberar memória
+        if (originalWidth > maxDimension || originalHeight > maxDimension) {
+            originalBitmap.recycle()
+        }
+
+        resizedBitmap
+    }
+
+    // Launcher para captura de foto com resolução alta
+    val takePhotoLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture()
+    ) { success: Boolean ->
+        if (success && photoUriState.value != null) { // Usando .value para acessar o Uri
+            try {
+                // Processar a imagem capturada
+                val inputStream = context.contentResolver.openInputStream(photoUriState.value!!)
+                val bitmap = BitmapFactory.decodeStream(inputStream)
+                inputStream?.close()
+
+                if (bitmap != null) {
+                    isUploading = true
+                    uploadError = null
+                    debugInfo = "Iniciando upload da foto de alta qualidade..."
+
+                    // Processar e redimensionar a imagem, mas manter qualidade razoável
+                    val processedBitmap = processImage(bitmap)
+
+                    uploadImageBase64(codigoProduto, processedBitmap) { successUpload, errorMsg ->
+                        debugInfo = if (successUpload) "Upload concluído com sucesso!"
+                        else "Erro no upload: $errorMsg"
+
+                        if (successUpload) {
+                            // Recarrega a imagem após upload
+                            loadImageBase64(codigoProduto) { newState ->
+                                imageStateBase64 = newState
+                            }
+                        } else {
+                            uploadError = errorMsg
+                        }
+                        isUploading = false
                     }
                 } else {
-                    uploadError = error
+                    uploadError = "Falha ao processar a imagem capturada"
+                    debugInfo = "Bitmap nulo após captura"
+                    isUploading = false
                 }
+            } catch (e: Exception) {
+                uploadError = "Erro ao processar a imagem: ${e.message}"
+                debugInfo = "Exceção: ${e.javaClass.simpleName}"
                 isUploading = false
             }
+        } else if (!success) {
+            uploadError = "Captura de imagem cancelada"
+            debugInfo = "Usuário cancelou a captura"
         }
     }
 
+    // Launcher para permissão de câmera
     // Launcher para permissão de câmera
     val cameraPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         if (isGranted) {
-            photoLauncher.launch(null)
+            try {
+                // Criar arquivo temporário e URI
+                val photoFile = createImageFile()
+                val uri = FileProvider.getUriForFile(
+                    context,
+                    "${context.packageName}.fileprovider",
+                    photoFile
+                )
+
+                // Armazenar o URI no estado e iniciar a câmera
+                photoUriState.value = uri
+                // Agora que temos certeza que o URI não é nulo, podemos passá-lo para o launcher
+                takePhotoLauncher.launch(uri)  // Passando um URI não-nulo diretamente
+
+            } catch (e: Exception) {
+                uploadError = "Erro ao preparar a câmera: ${e.message}"
+                debugInfo = "Exceção: ${e.javaClass.simpleName}"
+            }
         } else {
             showPermissionDialog = true
         }
@@ -94,6 +191,7 @@ fun ProductImageDialogBase64(
             }
         }
     }
+
 
     if (isVisible) {
         Dialog(
@@ -498,6 +596,15 @@ private fun ErrorContentBase64(
 private fun loadImageBase64(codigoProduto: String, onResult: (ImageStateBase64) -> Unit) {
     CoroutineScope(Dispatchers.IO).launch {
         try {
+            // Verificar o cache primeiro
+            val cachedBitmap = imageCache[codigoProduto]
+            if (cachedBitmap != null) {
+                withContext(Dispatchers.Main) {
+                    onResult(ImageStateBase64.HasImage(cachedBitmap))
+                }
+                return@launch
+            }
+
             Log.d("ImageDialog", "Chamando API para produto: $codigoProduto")
             // Faz a chamada para a API
             val response = NetworkModule.apiService.getProductImage(codigoProduto)
@@ -527,6 +634,8 @@ private fun loadImageBase64(codigoProduto: String, onResult: (ImageStateBase64) 
 
                             if (loadedBitmap != null) {
                                 Log.d("ImageDialog", "Bitmap criado: ${loadedBitmap.width}x${loadedBitmap.height}")
+                                // Adicionar ao cache
+                                imageCache[codigoProduto] = loadedBitmap
                                 onResult(ImageStateBase64.HasImage(loadedBitmap))
                             } else {
                                 Log.e("ImageDialog", "Falha ao criar Bitmap dos bytes")
@@ -570,7 +679,7 @@ private fun uploadImageBase64(
         try {
             Log.d("ImageDialog", "Iniciando upload para produto: $codigoProduto")
 
-            // Converte bitmap para base64
+            // Converte bitmap para base64 com alta qualidade
             val base64 = bitmapToBase64(bitmap)
             Log.d("ImageDialog", "Imagem convertida para base64. Tamanho: ${base64.length}")
 
@@ -620,7 +729,8 @@ private fun uploadImageBase64(
 
 private fun bitmapToBase64(bitmap: Bitmap): String {
     val outputStream = ByteArrayOutputStream()
-    bitmap.compress(Bitmap.CompressFormat.JPEG, 85, outputStream) // 85% quality
+    // Aumentar a qualidade de 85% para 95%
+    bitmap.compress(Bitmap.CompressFormat.JPEG, 95, outputStream)
     val imageBytes = outputStream.toByteArray()
     return Base64.encodeToString(imageBytes, Base64.DEFAULT)
 }

@@ -58,7 +58,7 @@ fun ValidacaoSenhaDialog(
                     )
 
                     Text(
-                        text = "Validação de Entrega",
+                        text = "Informe a senha para registar a retirada dos materiais",
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
                         textAlign = TextAlign.Center

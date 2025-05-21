@@ -82,6 +82,42 @@ class EntregaViewModel : ViewModel() {
         )
     }
 
+
+    fun selecionarTodosProdutos() {
+        // Obter todos os códigos de produtos que podem ser selecionados/entregues
+        val produtosSelecionaveis = _uiState.value.produtos
+            .filter { it.podeEntregar() }
+            .map { it.produto }
+            .toSet()
+
+        _uiState.value = _uiState.value.copy(
+            produtosSelecionados = produtosSelecionaveis
+        )
+    }
+
+    fun desselecionarTodosProdutos() {
+        _uiState.value = _uiState.value.copy(
+            produtosSelecionados = emptySet()
+        )
+    }
+
+    fun toggleSelecionarTodos() {
+        // Se já temos todos selecionados, desseleciona todos
+        val produtosSelecionaveis = _uiState.value.produtos
+            .filter { it.podeEntregar() }
+            .map { it.produto }
+            .toSet()
+
+        if (_uiState.value.produtosSelecionados.size == produtosSelecionaveis.size &&
+            _uiState.value.produtosSelecionados.containsAll(produtosSelecionaveis)) {
+            // Todos já estão selecionados, então desseleciona todos
+            desselecionarTodosProdutos()
+        } else {
+            // Nem todos estão selecionados, então seleciona todos
+            selecionarTodosProdutos()
+        }
+    }
+
     fun mostrarDialogValidacao() {
         _dialogState.value = _dialogState.value.copy(
             isVisible = true,

@@ -14,6 +14,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.separadorpedidos.data.model.ProdutoSeparacao
+import androidx.compose.material.icons.filled.CalendarToday
+
+// Arquivo: app/src/main/java/com/example/separadorpedidos/ui/components/ProdutoSeparacaoCompactCard.kt
 
 @Composable
 fun ProdutoSeparacaoCompactCard(
@@ -24,8 +27,7 @@ fun ProdutoSeparacaoCompactCard(
 ) {
     val jaSeparado = produto.jaSeparado()
     val podeSelecionar = produto.podeSelecionar()
-
-    // Removido o controle de estado do dialog e sua renderização dentro do card
+    val temAvisoPendencia = produto.temAvisoPendencia()
 
     AnimatedCard(
         onClick = if (podeSelecionar) onToggleSelection else { {} },
@@ -176,6 +178,71 @@ fun ProdutoSeparacaoCompactCard(
                         )
                     )
                 }
+
+                // NOVOS CAMPOS: Usuário e Data de Separação (mostrar apenas se o produto estiver separado)
+                if (jaSeparado && (!produto.usuarioSeparacao.isNullOrBlank() || !produto.dataSeparacao.isNullOrBlank())) {
+                    Divider(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Info,
+                            contentDescription = null,
+                            modifier = Modifier.size(14.dp),
+                            tint = Color(0xFF4CAF50).copy(alpha = 0.8f)
+                        )
+
+                        // Texto formatado "Separado por: [usuário] na data de [data]"
+                        val usuario = produto.usuarioSeparacao ?: "-"
+                        val data = produto.getDataSeparacaoFormatada().ifEmpty { "-" }
+
+                        Text(
+                            text = "Separado por: $usuario na data de $data",
+                            style = MaterialTheme.typography.labelMedium,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            color = Color(0xFF4CAF50).copy(alpha = 0.8f)
+                        )
+                    }
+                }
+
+                // Se tiver aviso de pendência, apenas mostrar a mensagem
+                if (temAvisoPendencia) {
+                    Divider(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Warning,
+                            contentDescription = null,
+                            modifier = Modifier.size(14.dp),
+                            tint = Color(0xFFFFC107)
+                        )
+
+                        Text(
+                            text = "Material com aviso de falta",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = Color(0xFFFFC107),
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
             }
 
             // BOTÃO VER FOTO - SEMPRE PRESENTE
@@ -183,9 +250,9 @@ fun ProdutoSeparacaoCompactCard(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Botão de visualizar/tirar foto - agora só chama onViewImage
+                // Botão de visualizar/tirar foto
                 IconButton(
-                    onClick = { onViewImage() },  // Removida a lógica interna de mostrar diálogo
+                    onClick = { onViewImage() },
                     colors = IconButtonDefaults.iconButtonColors(
                         containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
                     ),

@@ -42,9 +42,16 @@ data class ProdutoSeparacao(
     @SerializedName("Estante")
     val estante: String,
     @SerializedName("Prateleira")
-    val prateleira: String
-    // REMOVIDO: Campo TemImagem não é mais necessário
+    val prateleira: String,
+    @SerializedName("usuarioseparacao")
+    val usuarioSeparacao: String? = null,
+    @SerializedName("dataseparacao")
+    val dataSeparacao: String? = null,
+    @SerializedName("avisopendencia")
+    val avisoPendencia: String? = null
 ) {
+
+
     // Funções auxiliares para formatação
     fun getQtdOriginalFormatted(): String = formatQuantity(qtdOriginal)
     fun getSaldoFormatted(): String = formatQuantity(saldo)
@@ -83,6 +90,25 @@ data class ProdutoSeparacao(
             descricaoLocal.ifBlank { "Local: $local" }
         }
     }
+
+    fun getDataSeparacaoFormatada(): String {
+        if (dataSeparacao.isNullOrBlank() || dataSeparacao == "00000000") {
+            return ""
+        }
+
+        return try {
+            // Converter de AAAAMMDD para DD/MM/AAAA
+            val ano = dataSeparacao.substring(0, 4)
+            val mes = dataSeparacao.substring(4, 6)
+            val dia = dataSeparacao.substring(6, 8)
+            "$dia/$mes/$ano"
+        } catch (e: Exception) {
+            ""
+        }
+    }
+
+    // Nova função para verificar se tem aviso de pendência
+    fun temAvisoPendencia(): Boolean = avisoPendencia == "S"
 
     private fun formatQuantity(value: Double): String {
         return if (value == value.toInt().toDouble()) {
@@ -153,4 +179,6 @@ object CodigoSetores {
         val codigos = setoresSelecionados.map { "'${obterCodigo(it)}'" }
         return codigos.joinToString(",")
     }
+
+
 }

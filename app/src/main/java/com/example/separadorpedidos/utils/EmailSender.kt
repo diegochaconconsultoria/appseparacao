@@ -17,7 +17,7 @@ class EmailSender {
     companion object {
         private const val SMTP_HOST = "email-ssl.com.br"
         private const val SMTP_PORT = "465"
-        private const val EMAIL_FROM = "cadeideajuda@mvk.com.br"
+        private const val EMAIL_FROM = "cadeiadeajuda@mvk.com.br"
         private const val EMAIL_PASSWORD = "@Vendas2366"
         private val EMAIL_TO = arrayOf(
             "regina.cesarin@mvk.com.br",
@@ -26,7 +26,6 @@ class EmailSender {
         )
 
         /*private val EMAIL_TO = arrayOf(
-            "daniela.cippola@mvk.com.br",
             "diego.chacon@mvk.com.br"
         )*/
 

@@ -50,4 +50,7 @@ interface ApiService {
     // Adicione ao ApiService.kt
     @POST("VKSEPALMHIST")
     suspend fun obterHistoricoPedido(@Body request: HistoricoRequest): Response<HistoricoResponse>
+
+    @POST("VKSEPALMPEND")
+    suspend fun comunicarPendenciaMateriais(@Body request: BaixaSeparacaoRequest): Response<BaixaSeparacaoResponse>
 }
